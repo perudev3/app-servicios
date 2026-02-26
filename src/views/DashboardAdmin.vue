@@ -1,0 +1,927 @@
+<template>
+  <div class="dashboard admin" :class="{ 'sidebar-open': sidebarOpen }">
+
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" @click="sidebarOpen = false"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <span class="brand-icon">⚡</span>
+          <span class="brand-name">ServiceHub</span>
+        </div>
+        <div class="admin-badge-header">
+          <span>⚙️</span>
+          <span>Admin Panel</span>
+        </div>
+        <button class="sidebar-close-btn" @click="sidebarOpen = false">✕</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a
+          v-for="item in navItems"
+          :key="item.id"
+          href="#"
+          @click.prevent="navigate(item.id)"
+          :class="['nav-item', { active: activeSection === item.id }]"
+        >
+          <span class="nav-icon">{{ item.icon }}</span>
+          <span class="nav-label">{{ item.label }}</span>
+          <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <img
+            :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${authStore.user?.name}`"
+            alt="Admin"
+            class="user-avatar"
+          />
+          <div class="user-info">
+            <div class="user-name">{{ authStore.user?.name ?? 'Admin' }}</div>
+            <div class="user-role">{{ roleLabel }}</div>
+          </div>
+        </div>
+        <button class="logout-btn" @click="handleLogout" title="Cerrar sesión">🚪</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <!-- Mobile Topbar -->
+      <div class="mobile-topbar">
+        <button class="hamburger-btn" @click="sidebarOpen = true">☰</button>
+        <div class="mobile-brand">
+          <span>⚡</span>
+          <span>ServiceHub</span>
+        </div>
+        <button class="icon-btn small" @click="refreshStats" :disabled="loadingStats">
+          <span :class="{ spinning: loadingStats }">🔄</span>
+        </button>
+      </div>
+
+      <!-- Desktop Header -->
+      <header class="content-header">
+        <div class="header-left">
+          <h1 class="page-title">Panel de Administración</h1>
+          <p class="page-subtitle">
+            Bienvenido, <strong>{{ authStore.user?.name }}</strong>
+            <span class="date-text"> · {{ currentDate }}</span>
+          </p>
+        </div>
+        <div class="header-right">
+          <div class="user-chip">
+            <span class="chip-dot"></span>
+            <span class="chip-email">{{ authStore.user?.email }}</span>
+          </div>
+          <button class="icon-btn" @click="refreshStats" :disabled="loadingStats" title="Actualizar">
+            <span :class="{ spinning: loadingStats }">🔄</span>
+          </button>
+        </div>
+      </header>
+
+      <RouterView v-if="$route.name !== 'DashboardAdmin'" />
+
+      <template v-else>
+        <!-- Loading -->
+        <div v-if="loadingStats" class="loading-overlay">
+          <div class="loading-spinner"></div>
+          <p>Cargando estadísticas...</p>
+        </div>
+
+        <!-- Error -->
+        <div v-if="apiError" class="api-error-banner">
+          <span>⚠️ {{ apiError }}</span>
+          <button @click="apiError = ''" class="close-error">✕</button>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="main-stats-grid" v-if="!loadingStats">
+          <div class="main-stat-card users">
+            <div class="stat-header">
+              <div class="stat-icon-wrapper"><span>👥</span></div>
+              <div class="stat-trend positive">+12.5%</div>
+            </div>
+            <div class="stat-value">{{ stats.totalUsers.toLocaleString() }}</div>
+            <div class="stat-label">Usuarios Totales</div>
+            <div class="stat-breakdown">
+              <div class="breakdown-item">
+                <span class="breakdown-dot clients"></span>
+                <span>{{ stats.totalClients.toLocaleString() }} Clientes</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-dot pros"></span>
+                <span>{{ stats.totalProfessionals.toLocaleString() }} Profesionales</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="main-stat-card revenue">
+            <div class="stat-header">
+              <div class="stat-icon-wrapper"><span>💰</span></div>
+              <div class="stat-trend positive">+8.3%</div>
+            </div>
+            <div class="stat-value">${{ stats.monthlyRevenue.toLocaleString() }}</div>
+            <div class="stat-label">Ingresos Este Mes</div>
+            <div class="mini-chart">
+              <div v-for="(v, i) in revenueChart" :key="i" class="mini-bar" :style="{ height: v + '%' }"></div>
+            </div>
+          </div>
+
+          <div class="main-stat-card services">
+            <div class="stat-header">
+              <div class="stat-icon-wrapper"><span>📋</span></div>
+              <div class="stat-trend positive">+15.2%</div>
+            </div>
+            <div class="stat-value">{{ stats.activeServices.toLocaleString() }}</div>
+            <div class="stat-label">Servicios Activos</div>
+            <div class="stat-detail">
+              <span class="detail-highlight">{{ stats.pendingServices }}</span> pendientes
+            </div>
+          </div>
+
+          <div class="main-stat-card satisfaction">
+            <div class="stat-header">
+              <div class="stat-icon-wrapper"><span>⭐</span></div>
+              <div class="stat-trend positive">+0.2</div>
+            </div>
+            <div class="stat-value">{{ stats.avgRating }}/5</div>
+            <div class="stat-label">Satisfacción</div>
+            <div class="rating-bars">
+              <div class="rating-bar"><div class="bar-fill" style="width:95%"></div></div>
+              <div class="rating-bar"><div class="bar-fill" style="width:85%"></div></div>
+              <div class="rating-bar"><div class="bar-fill" style="width:70%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics -->
+        <div class="section">
+          <div class="analytics-card">
+            <div class="analytics-header">
+              <div>
+                <h2 class="analytics-title">Análisis de la Plataforma</h2>
+                <p class="analytics-subtitle">Últimos 30 días</p>
+              </div>
+              <div class="analytics-filters">
+                <button
+                  v-for="f in ['Usuarios', 'Servicios', 'Ingresos']"
+                  :key="f"
+                  :class="['filter-btn', { active: activeFilter === f }]"
+                  @click="activeFilter = f"
+                >{{ f }}</button>
+              </div>
+            </div>
+            <div class="analytics-chart">
+              <div class="chart-grid">
+                <div v-for="n in 5" :key="n" class="grid-line"></div>
+              </div>
+              <div class="chart-bars">
+                <div v-for="(value, index) in analyticsData" :key="index" class="chart-column">
+                  <div class="chart-bar-wrapper">
+                    <div class="chart-bar" :style="{ height: value + '%' }">
+                      <div class="bar-value">{{ Math.round(value * 10) }}</div>
+                    </div>
+                  </div>
+                  <div class="chart-label">{{ getChartLabel(index) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section">
+          <h2 class="section-title">Gestión Rápida</h2>
+          <div class="admin-actions-grid">
+            <button class="admin-action-card" @click="navigate('professionals')">
+              <span class="action-icon">✅</span>
+              <div class="action-info">
+                <div class="action-name">Aprobar Profesionales</div>
+                <div class="action-count">{{ stats.pendingProfessionals }} pendientes</div>
+              </div>
+            </button>
+            <button class="admin-action-card" @click="navigate('reports')">
+              <span class="action-icon">🚫</span>
+              <div class="action-info">
+                <div class="action-name">Moderación</div>
+                <div class="action-count">{{ stats.contentReports }} reportes</div>
+              </div>
+            </button>
+            <button class="admin-action-card" @click="navigate('payments')">
+              <span class="action-icon">💳</span>
+              <div class="action-info">
+                <div class="action-name">Pagos Pendientes</div>
+                <div class="action-count">${{ stats.pendingPayments.toLocaleString() }}</div>
+              </div>
+            </button>
+            <button class="admin-action-card" @click="navigate('support')">
+              <span class="action-icon">📧</span>
+              <div class="action-info">
+                <div class="action-name">Soporte</div>
+                <div class="action-count">{{ stats.supportTickets }} tickets</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Two Columns -->
+        <div class="two-column-section">
+          <div class="section-card">
+            <div class="card-header">
+              <h3 class="card-title">Usuarios Recientes</h3>
+              <a href="#" class="view-link">Ver todos →</a>
+            </div>
+            <div v-if="loadingUsers" class="inner-loading">Cargando...</div>
+            <div v-else class="users-list">
+              <div v-for="user in recentUsers" :key="user.id" class="user-item">
+                <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`" alt="User" class="user-item-avatar" />
+                <div class="user-item-info">
+                  <div class="user-item-name">{{ user.name }}</div>
+                  <div class="user-item-type">{{ roleMap[user.role] ?? user.role }}</div>
+                </div>
+                <span :class="['user-item-status', user.email_verified_at ? 'active' : 'pending']">
+                  {{ user.email_verified_at ? 'Activo' : 'Pendiente' }}
+                </span>
+              </div>
+              <div v-if="recentUsers.length === 0" class="empty-state">No hay usuarios recientes</div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="card-header">
+              <h3 class="card-title">Pendientes de Aprobación</h3>
+              <a href="#" class="view-link">Ver todos →</a>
+            </div>
+            <div class="approvals-list">
+              <div v-for="item in pendingApprovals" :key="item.id" class="approval-item">
+                <div class="approval-icon">{{ item.icon }}</div>
+                <div class="approval-info">
+                  <div class="approval-title">{{ item.title }}</div>
+                  <div class="approval-desc">{{ item.description }}</div>
+                  <div class="approval-time">{{ item.time }}</div>
+                </div>
+                <div class="approval-actions">
+                  <button class="approve-btn" @click="handleApprove(item)">✓</button>
+                  <button class="reject-btn" @click="handleReject(item)">✗</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="section">
+          <div class="section-card">
+            <div class="card-header">
+              <h3 class="card-title">Estadísticas por Categoría</h3>
+              <button class="export-btn">
+                <span>📊</span>
+                <span class="export-label"> Exportar</span>
+              </button>
+            </div>
+            <div class="stats-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Categoría</th>
+                    <th>Servicios</th>
+                    <th class="hide-sm">Profesionales</th>
+                    <th>Ingresos</th>
+                    <th class="hide-sm">Calificación</th>
+                    <th>Tendencia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="category in categoryStats" :key="category.id">
+                    <td>
+                      <div class="table-category">
+                        <span class="category-icon">{{ category.icon }}</span>
+                        <span>{{ category.name }}</span>
+                      </div>
+                    </td>
+                    <td><strong>{{ category.services }}</strong></td>
+                    <td class="hide-sm">{{ category.professionals }}</td>
+                    <td><span class="revenue-value">${{ category.revenue.toLocaleString() }}</span></td>
+                    <td class="hide-sm"><span class="rating-badge">⭐ {{ category.rating }}</span></td>
+                    <td>
+                      <span :class="['trend-indicator', category.trend > 0 ? 'up' : 'down']">
+                        {{ category.trend > 0 ? '↗' : '↘' }} {{ Math.abs(category.trend) }}%
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom spacer for mobile nav -->
+        <div class="mobile-bottom-spacer"></div>
+      </template>
+    </main>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-bottom-nav">
+      <a
+        v-for="item in mobileNavItems"
+        :key="item.id"
+        href="#"
+        @click.prevent="navigate(item.id)"
+        :class="['mobile-nav-item', { active: activeSection === item.id }]"
+      >
+        <span class="mobile-nav-icon">{{ item.icon }}</span>
+        <span class="mobile-nav-label">{{ item.label }}</span>
+      </a>
+      <a href="#" class="mobile-nav-item" @click.prevent="sidebarOpen = true">
+        <span class="mobile-nav-icon">☰</span>
+        <span class="mobile-nav-label">Más</span>
+      </a>
+    </nav>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import api from '@/services/api';
+
+const route  = useRoute();
+const router = useRouter();
+
+const authStore = useAuthStore();
+
+const activeSection = ref('dashboard');
+const sidebarOpen   = ref(false);
+const loadingStats  = ref(false);
+const loadingUsers  = ref(false);
+const apiError      = ref('');
+const activeFilter  = ref('Usuarios');
+
+watch(() => route.name, (name) => {
+  const map = {
+    'AdminUsers':         'users',
+    'AdminProfessionals': 'professionals',
+    // agrega más según crees las rutas
+  };
+  if (map[name]) activeSection.value = map[name];
+  else           activeSection.value = 'dashboard';
+}, { immediate: true });
+
+// Cerrar con Escape
+const onKeydown = (e) => { if (e.key === 'Escape') sidebarOpen.value = false; };
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onUnmounted(() => window.removeEventListener('keydown', onKeydown));
+
+const navigate = (id) => {
+  activeSection.value = id;
+  sidebarOpen.value   = false;
+
+  const routeMap = {
+    'users':         { name: 'AdminUsers' },
+    'professionals': { name: 'AdminProfessionals' },
+    'dashboard':     { name: 'DashboardAdmin' },
+    // secciones sin ruta propia permanecen internas:
+    // payments, reviews, reports, support, settings → no navegan
+  };
+
+  if (routeMap[id]) {
+    router.push(routeMap[id]);
+  }
+  // si no tiene ruta mapeada, solo cambia activeSection (comportamiento actual)
+};
+
+const roleMap = { admin: 'Super Administrador', client: 'Cliente', professional: 'Profesional' };
+const roleLabel   = computed(() => roleMap[authStore.user?.role] ?? authStore.user?.role ?? '');
+const currentDate = computed(() =>
+  new Date().toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+);
+
+const stats = ref({
+  totalUsers: 0, totalClients: 0, totalProfessionals: 0,
+  monthlyRevenue: 0, activeServices: 0, pendingServices: 0,
+  avgRating: 0, pendingProfessionals: 0, contentReports: 0,
+  pendingPayments: 0, supportTickets: 0,
+});
+
+const recentUsers      = ref([]);
+const revenueChart     = ref([45, 62, 58, 71, 65, 78, 85, 68, 75, 82]);
+const analyticsData    = ref([65, 78, 72, 85, 68, 92, 75, 88, 82, 90, 78, 95, 85, 88]);
+const pendingApprovals = ref([
+  { id: 1, icon: '👨‍🔧', title: 'Nuevo Profesional', description: 'Roberto Silva - Carpintero', time: 'Hace 15 min' },
+  { id: 2, icon: '📋', title: 'Servicio Nuevo',      description: 'Diseño Web Premium',         time: 'Hace 1 hora' },
+  { id: 3, icon: '💳', title: 'Retiro de Fondos',    description: '$450.00 - Laura García',     time: 'Hace 2 horas' },
+]);
+const categoryStats = ref([
+  { id: 1, icon: '🏠', name: 'Hogar & Reparaciones', services: 856,  professionals: 234, revenue: 45200, rating: 4.9, trend:  12.5 },
+  { id: 2, icon: '💻', name: 'Tecnología',            services: 623,  professionals: 189, revenue: 67800, rating: 4.8, trend:  18.3 },
+  { id: 3, icon: '🎨', name: 'Diseño & Creatividad',  services: 445,  professionals: 156, revenue: 38900, rating: 4.7, trend:  -2.1 },
+  { id: 4, icon: '💼', name: 'Negocios',              services: 389,  professionals: 123, revenue: 52100, rating: 4.9, trend:   8.7 },
+]);
+
+const navItems = [
+  { id: 'dashboard',     icon: '📊', label: 'Dashboard' },
+  { id: 'users',         icon: '👥', label: 'Usuarios' , path: '/admin/users' },
+  { id: 'professionals', icon: '💼', label: 'Profesionales', badge: '23' },
+  { id: 'services',      icon: '📋', label: 'Servicios' },
+  { id: 'payments',      icon: '💰', label: 'Pagos' },
+  { id: 'reviews',       icon: '⭐', label: 'Reseñas' },
+  { id: 'reports',       icon: '📈', label: 'Reportes' },
+  { id: 'support',       icon: '💬', label: 'Soporte', badge: '34' },
+  { id: 'settings',      icon: '⚙️', label: 'Configuración' },
+];
+
+const mobileNavItems = [
+  { id: 'dashboard',  icon: '📊', label: 'Inicio'   },
+  { id: 'users',      icon: '👥', label: 'Usuarios', path: '/admin/users' },
+  { id: 'payments',   icon: '💰', label: 'Pagos'    },
+  { id: 'settings',   icon: '⚙️', label: 'Config'   },
+];
+
+const getChartLabel = (index) => {
+  const labels = ['1', '5', '10', '15', '20', '25', '30'];
+  const step = Math.floor(analyticsData.value.length / labels.length);
+  return index % step === 0 ? labels[Math.floor(index / step)] : '';
+};
+
+const fetchStats = async () => {
+  loadingStats.value = true;
+  apiError.value = '';
+  try {
+    const { data } = await api.get('/admin/stats');
+    if (data.success) stats.value = { ...stats.value, ...data.stats };
+  } catch {
+    stats.value = {
+      totalUsers: 15847, totalClients: 12453, totalProfessionals: 3394,
+      monthlyRevenue: 124590, activeServices: 2845, pendingServices: 456,
+      avgRating: 4.8, pendingProfessionals: 23, contentReports: 8,
+      pendingPayments: 12450, supportTickets: 34,
+    };
+  } finally {
+    loadingStats.value = false;
+  }
+};
+
+const fetchRecentUsers = async () => {
+  loadingUsers.value = true;
+  try {
+    const { data } = await api.get('/admin/users?per_page=4&sort=created_at');
+    if (data.success) recentUsers.value = data.users.data ?? data.users;
+  } catch {
+    recentUsers.value = [
+      { id: 1, name: 'María González', role: 'client',       email_verified_at: true },
+      { id: 2, name: 'Juan Pérez',     role: 'professional', email_verified_at: null },
+      { id: 3, name: 'Ana Rodríguez',  role: 'client',       email_verified_at: true },
+      { id: 4, name: 'Carlos Mendoza', role: 'professional', email_verified_at: true },
+    ];
+  } finally {
+    loadingUsers.value = false;
+  }
+};
+
+const refreshStats   = () => Promise.all([fetchStats(), fetchRecentUsers()]);
+const handleApprove  = (item) => { pendingApprovals.value = pendingApprovals.value.filter(a => a.id !== item.id); };
+const handleReject   = (item) => { pendingApprovals.value = pendingApprovals.value.filter(a => a.id !== item.id); };
+const handleLogout   = () => authStore.logout();
+
+onMounted(() => {
+  if (authStore.user?.role !== 'admin') { authStore.logout(); return; }
+  fetchStats();
+  fetchRecentUsers();
+});
+</script>
+
+<style scoped>
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ─── Layout ─── */
+.dashboard.admin {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+  font-family: 'Outfit', -apple-system, sans-serif;
+  position: relative;
+}
+
+/* ─── Overlay ─── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 40;
+  backdrop-filter: blur(3px);
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  width: 280px;
+  background: white;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0;
+  height: 100vh;
+  z-index: 50;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  position: relative;
+}
+
+.brand { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.brand-icon { font-size:32px; }
+.brand-name {
+  font-size:24px; font-weight:900;
+  background:linear-gradient(135deg,#2563eb,#4f46e5);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+
+.admin-badge-header {
+  display:inline-flex; align-items:center; gap:6px;
+  background:linear-gradient(135deg,#fee2e2,#fecaca);
+  color:#dc2626; padding:6px 14px; border-radius:8px;
+  font-size:12px; font-weight:800;
+}
+
+.sidebar-close-btn {
+  display: none;
+  position:absolute; top:16px; right:16px;
+  width:32px; height:32px; border-radius:8px;
+  border:none; background:#f1f5f9;
+  font-size:16px; font-weight:700; color:#64748b;
+  cursor:pointer; align-items:center; justify-content:center;
+}
+
+.sidebar-nav { flex:1; padding:16px 12px; overflow-y:auto; }
+
+.nav-item {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 16px; margin-bottom:4px; border-radius:12px;
+  color:#64748b; text-decoration:none;
+  font-weight:600; font-size:15px; transition:all 0.2s;
+}
+.nav-item:hover  { background:#f8fafc; color:#2563eb; }
+.nav-item.active { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#2563eb; }
+
+.nav-icon  { font-size:20px; width:24px; text-align:center; flex-shrink:0; }
+.nav-label { flex:1; }
+.nav-badge { background:#ef4444; color:white; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:800; }
+
+.sidebar-footer {
+  padding:16px 20px; border-top:1px solid #f1f5f9;
+  display:flex; align-items:center; gap:12px;
+}
+.user-profile { display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
+.user-avatar  { width:44px; height:44px; border-radius:12px; border:2px solid #e2e8f0; flex-shrink:0; }
+.user-info    { min-width:0; }
+.user-name    { font-weight:700; font-size:14px; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-role    { font-size:12px; color:#64748b; }
+.logout-btn   { width:40px; height:40px; border-radius:10px; border:none; background:#fee2e2; font-size:18px; cursor:pointer; transition:all 0.2s; flex-shrink:0; }
+.logout-btn:hover { background:#fca5a5; }
+
+/* ─── Main Content ─── */
+.main-content { flex:1; margin-left:280px; padding:32px 40px; min-width:0; }
+
+/* ─── Mobile Topbar (hidden on desktop) ─── */
+.mobile-topbar {
+  display:none; align-items:center; justify-content:space-between;
+  padding:12px 16px; background:white; border-bottom:1px solid #e2e8f0;
+  position:sticky; top:0; z-index:30;
+  margin:-32px -40px 24px;
+}
+.hamburger-btn {
+  width:44px; height:44px; border-radius:12px; border:none; background:#f1f5f9;
+  font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.mobile-brand {
+  display:flex; align-items:center; gap:8px; font-size:20px; font-weight:900;
+  background:linear-gradient(135deg,#2563eb,#4f46e5);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+
+/* ─── Desktop Header ─── */
+.content-header {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:32px; gap:16px;
+}
+.page-title    { font-size:32px; font-weight:900; color:#0f172a; margin-bottom:4px; line-height:1.2; }
+.page-subtitle { color:#64748b; font-size:14px; }
+.header-right  { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+
+.user-chip {
+  display:flex; align-items:center; gap:8px;
+  background:#dcfce7; color:#16a34a;
+  padding:8px 16px; border-radius:20px; font-size:13px; font-weight:700; white-space:nowrap;
+}
+.chip-dot {
+  width:8px; height:8px; background:#16a34a; border-radius:50%; flex-shrink:0;
+  animation:pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+
+.icon-btn {
+  width:44px; height:44px; border-radius:12px; border:none; background:white;
+  font-size:20px; cursor:pointer; transition:all 0.2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.1);
+  display:flex; align-items:center; justify-content:center;
+}
+.icon-btn.small { width:40px; height:40px; font-size:18px; box-shadow:none; background:#f1f5f9; }
+.icon-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+@keyframes spin { to{transform:rotate(360deg)} }
+.spinning { display:inline-block; animation:spin 1s linear infinite; }
+
+/* ─── Loading / Error ─── */
+.loading-overlay {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:80px 0; color:#64748b; gap:16px;
+}
+.loading-spinner {
+  width:40px; height:40px; border:4px solid #e2e8f0; border-top-color:#2563eb;
+  border-radius:50%; animation:spin .8s linear infinite;
+}
+.inner-loading { text-align:center; color:#94a3b8; padding:20px; font-size:14px; }
+
+.api-error-banner {
+  display:flex; justify-content:space-between; align-items:center;
+  background:#fef3c7; border:1px solid #fcd34d; color:#92400e;
+  padding:12px 20px; border-radius:12px; margin-bottom:24px;
+  font-size:14px; font-weight:600; gap:12px;
+}
+.close-error { background:none; border:none; cursor:pointer; font-size:16px; color:#92400e; flex-shrink:0; }
+
+/* ─── Stats Grid ─── */
+.main-stats-grid {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:24px; margin-bottom:32px;
+}
+.main-stat-card {
+  background:white; padding:24px; border-radius:20px;
+  box-shadow:0 1px 3px rgba(0,0,0,.05); transition:all .3s; overflow:hidden;
+}
+.main-stat-card:hover { transform:translateY(-4px); box-shadow:0 12px 40px rgba(0,0,0,.1); }
+
+.stat-header   { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+.stat-icon-wrapper { width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:26px; }
+
+.main-stat-card.users .stat-icon-wrapper        { background:linear-gradient(135deg,#dbeafe,#bfdbfe); }
+.main-stat-card.revenue .stat-icon-wrapper      { background:linear-gradient(135deg,#dcfce7,#bbf7d0); }
+.main-stat-card.services .stat-icon-wrapper     { background:linear-gradient(135deg,#fef3c7,#fde68a); }
+.main-stat-card.satisfaction .stat-icon-wrapper { background:linear-gradient(135deg,#fce7f3,#fbcfe8); }
+
+.stat-trend          { padding:5px 10px; border-radius:8px; font-size:12px; font-weight:800; }
+.stat-trend.positive { background:#dcfce7; color:#16a34a; }
+
+.stat-value         { font-size:36px; font-weight:900; color:#0f172a; margin-bottom:6px; line-height:1; }
+.stat-label         { font-size:14px; color:#64748b; font-weight:600; margin-bottom:14px; }
+.stat-breakdown     { display:flex; flex-direction:column; gap:7px; }
+.breakdown-item     { display:flex; align-items:center; gap:8px; font-size:13px; color:#475569; font-weight:600; }
+.breakdown-dot      { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.breakdown-dot.clients { background:#3b82f6; }
+.breakdown-dot.pros    { background:#f59e0b; }
+.mini-chart         { display:flex; align-items:flex-end; gap:3px; height:36px; }
+.mini-bar           { flex:1; background:linear-gradient(135deg,#dcfce7,#86efac); border-radius:2px; min-height:6px; }
+.stat-detail        { font-size:13px; color:#64748b; }
+.detail-highlight   { color:#2563eb; font-weight:800; }
+.rating-bars        { display:flex; flex-direction:column; gap:5px; }
+.rating-bar         { height:4px; background:#f1f5f9; border-radius:2px; overflow:hidden; }
+.bar-fill           { height:100%; background:linear-gradient(90deg,#fbbf24,#f59e0b); border-radius:2px; }
+
+/* ─── Analytics ─── */
+.section        { margin-bottom:32px; }
+.analytics-card { background:white; padding:28px; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+
+.analytics-header {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:28px; gap:16px; flex-wrap:wrap;
+}
+.analytics-title    { font-size:22px; font-weight:800; color:#0f172a; margin-bottom:4px; }
+.analytics-subtitle { font-size:13px; color:#64748b; }
+.analytics-filters  { display:flex; gap:8px; flex-wrap:wrap; }
+
+.filter-btn {
+  padding:9px 18px; background:#f8fafc; border:none; border-radius:10px;
+  font-weight:600; font-size:13px; color:#64748b; cursor:pointer; transition:all .2s; white-space:nowrap;
+}
+.filter-btn.active { background:linear-gradient(135deg,#2563eb,#3b82f6); color:white; }
+
+.analytics-chart   { position:relative; height:260px; }
+.chart-grid        { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:space-between; }
+.grid-line         { width:100%; height:1px; background:#f1f5f9; }
+.chart-bars        { position:relative; display:flex; align-items:flex-end; gap:6px; height:100%; padding-top:36px; }
+.chart-column      { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; min-width:0; }
+.chart-bar-wrapper { width:100%; display:flex; justify-content:center; align-items:flex-end; height:100%; }
+
+.chart-bar {
+  width:80%; background:linear-gradient(180deg,#3b82f6,#2563eb);
+  border-radius:6px 6px 0 0; position:relative; transition:all .2s; cursor:pointer;
+}
+.chart-bar:hover { background:linear-gradient(180deg,#60a5fa,#3b82f6); }
+
+.bar-value {
+  position:absolute; top:-22px; left:50%; transform:translateX(-50%);
+  font-size:11px; font-weight:800; color:#0f172a;
+  opacity:0; transition:opacity .2s; white-space:nowrap;
+}
+.chart-bar:hover .bar-value { opacity:1; }
+.chart-label { margin-top:8px; font-size:11px; color:#94a3b8; font-weight:600; }
+
+/* ─── Actions ─── */
+.section-title      { font-size:22px; font-weight:800; color:#0f172a; margin-bottom:16px; }
+.admin-actions-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+
+.admin-action-card {
+  display:flex; align-items:center; gap:14px; padding:20px;
+  background:white; border:2px solid #f1f5f9; border-radius:18px;
+  cursor:pointer; transition:all .2s; text-align:left; width:100%;
+}
+.admin-action-card:hover { border-color:#dbeafe; transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.08); }
+.action-icon  { font-size:28px; flex-shrink:0; }
+.action-name  { font-weight:700; color:#0f172a; margin-bottom:3px; font-size:14px; line-height:1.3; }
+.action-count { font-size:13px; color:#2563eb; font-weight:700; }
+
+/* ─── Two Columns ─── */
+.two-column-section { display:grid; grid-template-columns:repeat(2,1fr); gap:24px; margin-bottom:32px; }
+.section-card { background:white; padding:24px; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+.card-header  { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:8px; }
+.card-title   { font-size:18px; font-weight:800; color:#0f172a; }
+.view-link    { color:#2563eb; font-size:13px; font-weight:700; text-decoration:none; white-space:nowrap; }
+
+.users-list       { display:flex; flex-direction:column; gap:12px; }
+.user-item        { display:flex; align-items:center; gap:12px; padding:14px; background:#f8fafc; border-radius:12px; }
+.user-item-avatar { width:40px; height:40px; border-radius:10px; border:2px solid white; flex-shrink:0; }
+.user-item-info   { flex:1; min-width:0; }
+.user-item-name   { font-weight:700; color:#0f172a; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-item-type   { font-size:12px; color:#64748b; }
+.user-item-status { padding:5px 10px; border-radius:7px; font-size:11px; font-weight:800; white-space:nowrap; flex-shrink:0; }
+.user-item-status.active  { background:#dcfce7; color:#16a34a; }
+.user-item-status.pending { background:#fef3c7; color:#d97706; }
+.empty-state { text-align:center; color:#94a3b8; padding:20px; font-size:14px; }
+
+.approvals-list { display:flex; flex-direction:column; gap:12px; }
+.approval-item  { display:flex; align-items:center; gap:14px; padding:14px; background:#f8fafc; border-radius:12px; }
+.approval-icon  { font-size:28px; flex-shrink:0; }
+.approval-info  { flex:1; min-width:0; }
+.approval-title { font-weight:700; color:#0f172a; margin-bottom:3px; font-size:14px; }
+.approval-desc  { font-size:13px; color:#64748b; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.approval-time  { font-size:11px; color:#94a3b8; font-weight:600; }
+.approval-actions { display:flex; gap:6px; flex-shrink:0; }
+.approve-btn,.reject-btn { width:34px; height:34px; border-radius:8px; border:none; font-size:14px; font-weight:800; cursor:pointer; transition:all .2s; }
+.approve-btn { background:#dcfce7; color:#16a34a; }
+.approve-btn:hover { background:#16a34a; color:white; }
+.reject-btn  { background:#fee2e2; color:#dc2626; }
+.reject-btn:hover { background:#dc2626; color:white; }
+
+/* ─── Table ─── */
+.export-btn {
+  display:flex; align-items:center; gap:6px; padding:9px 18px;
+  background:#f8fafc; border:none; border-radius:10px;
+  font-weight:700; font-size:13px; color:#475569; cursor:pointer; white-space:nowrap;
+}
+.export-btn:hover { background:#f1f5f9; }
+.stats-table { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+table  { width:100%; border-collapse:collapse; min-width:400px; }
+thead  { background:#f8fafc; }
+th     { padding:14px 16px; text-align:left; font-weight:800; font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; }
+td     { padding:18px 16px; border-top:1px solid #f1f5f9; font-size:14px; color:#475569; }
+.table-category { display:flex; align-items:center; gap:10px; font-weight:700; color:#0f172a; }
+.category-icon  { font-size:18px; flex-shrink:0; }
+.revenue-value  { font-weight:800; color:#0f172a; }
+.rating-badge   { background:#fef3c7; color:#d97706; padding:5px 10px; border-radius:7px; font-size:12px; font-weight:800; }
+.trend-indicator      { font-weight:800; font-size:13px; }
+.trend-indicator.up   { color:#16a34a; }
+.trend-indicator.down { color:#dc2626; }
+
+/* ─── Mobile Bottom Nav ─── */
+.mobile-bottom-nav {
+  display:none; position:fixed; bottom:0; left:0; right:0;
+  background:white; border-top:1px solid #e2e8f0;
+  padding:8px 0 max(8px, env(safe-area-inset-bottom));
+  z-index:30; justify-content:space-around;
+  box-shadow:0 -4px 20px rgba(0,0,0,.08);
+}
+.mobile-nav-item {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  text-decoration:none; padding:6px 10px; border-radius:12px; transition:all .2s; min-width:52px;
+}
+.mobile-nav-item.active { background:#eff6ff; }
+.mobile-nav-icon  { font-size:22px; }
+.mobile-nav-label { font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.3px; }
+.mobile-nav-item.active .mobile-nav-label { color:#2563eb; }
+
+.mobile-bottom-spacer { display:none; height:80px; }
+
+/* ═══════════════════════════════════════════════════════
+   BREAKPOINTS
+═══════════════════════════════════════════════════════ */
+
+/* 1400px — laptop pequeño */
+@media (max-width: 1400px) {
+  .main-content       { padding:28px 32px; }
+  .main-stats-grid    { grid-template-columns:repeat(2,1fr); }
+  .admin-actions-grid { grid-template-columns:repeat(2,1fr); }
+}
+
+/* 1100px — tablet landscape */
+@media (max-width: 1100px) {
+  .sidebar      { width:240px; }
+  .main-content { margin-left:240px; padding:24px 24px; }
+  .page-title   { font-size:26px; }
+  .chip-email   { display:none; }
+  .user-chip    { padding:8px 12px; }
+}
+
+/* 900px — tablet portrait: sidebar se convierte en drawer */
+@media (max-width: 900px) {
+  .sidebar       { transform:translateX(-100%); width:280px; }
+  .main-content  { margin-left:0; padding:0 20px 20px; }
+
+  .mobile-topbar         { display:flex; margin:-0 -20px 20px; }
+  .content-header        { display:none; }
+  .sidebar-close-btn     { display:flex; }
+
+  .sidebar-open .sidebar          { transform:translateX(0); }
+  .sidebar-open .sidebar-overlay  { display:block; }
+
+  .main-stats-grid    { grid-template-columns:repeat(2,1fr); gap:16px; }
+  .admin-actions-grid { grid-template-columns:repeat(2,1fr); gap:12px; }
+  .two-column-section { grid-template-columns:1fr; gap:16px; }
+
+  .analytics-chart { height:220px; }
+  .analytics-card  { padding:20px; }
+  .section         { margin-bottom:24px; }
+
+  .mobile-bottom-nav    { display:flex; }
+  .mobile-bottom-spacer { display:block; }
+}
+
+/* 640px — teléfono grande */
+@media (max-width: 640px) {
+  .main-content  { padding:0 16px 16px; }
+  .mobile-topbar { margin:0 -16px 16px; }
+
+  .main-stats-grid    { grid-template-columns:repeat(2,1fr); gap:12px; }
+  .admin-actions-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+
+  .main-stat-card    { padding:16px; border-radius:16px; }
+  .stat-value        { font-size:28px; }
+  .stat-icon-wrapper { width:44px; height:44px; font-size:22px; }
+  .stat-breakdown    { display:none; }
+
+  .admin-action-card { padding:14px; gap:10px; }
+  .action-icon       { font-size:24px; }
+  .action-name       { font-size:13px; }
+
+  .analytics-chart  { height:180px; }
+  .analytics-header { flex-direction:column; align-items:flex-start; gap:12px; }
+
+  .section-card { padding:16px; }
+  .date-text    { display:none; }
+
+  .approval-item    { flex-wrap:wrap; }
+  .approval-actions { width:100%; justify-content:flex-end; margin-top:4px; }
+}
+
+/* 480px — teléfono estándar */
+@media (max-width: 480px) {
+  .main-stats-grid    { gap:10px; }
+  .admin-actions-grid { gap:10px; }
+
+  .main-stat-card { padding:14px; }
+  .stat-value     { font-size:26px; }
+  .stat-label     { font-size:12px; margin-bottom:10px; }
+  .stat-trend     { padding:4px 8px; font-size:11px; }
+
+  .section-title   { font-size:18px; }
+  .analytics-title { font-size:18px; }
+  .card-title      { font-size:16px; }
+
+  .user-item        { padding:12px; gap:10px; }
+  .user-item-avatar { width:36px; height:36px; }
+
+  .hide-sm      { display:none; }
+  .export-label { display:none; }
+
+  .mobile-nav-item  { min-width:44px; padding:6px 6px; }
+  .mobile-nav-label { font-size:9px; }
+}
+
+/* 360px — teléfono pequeño */
+@media (max-width: 360px) {
+  .main-stats-grid    { grid-template-columns:1fr; }
+  .admin-actions-grid { grid-template-columns:1fr 1fr; }
+  .main-stat-card     { padding:16px; }
+  .stat-value         { font-size:32px; }
+  .stat-breakdown     { display:flex; }
+}
+</style>
