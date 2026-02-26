@@ -39,7 +39,7 @@
             <div class="user-role">Plomero Certificado</div>
           </div>
         </div>
-        <button class="logout-btn" @click="logout">🚪</button>
+        <button class="logout-btn" @click="handleLogout" title="Cerrar sesión">🚪</button>
       </div>
     </aside>
 
@@ -299,10 +299,13 @@
 
 import { ref, onMounted } from "vue";
 import professionalService from "../services/professionalService";
+import { useAuthStore } from '@/stores/auth';
 
 const activeSection = ref('dashboard');
 
 const sidebarOpen = ref(false)
+
+const authStore = useAuthStore();
 
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
@@ -323,6 +326,7 @@ const navItems = [
 const professional = ref(null);
 const needsProfileCompletion = ref(false);
 const loading = ref(true);
+const handleLogout   = () => authStore.logout();
 
 const loadDashboard = async () => {
   try {
