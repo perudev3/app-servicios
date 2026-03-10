@@ -1,11 +1,12 @@
 <template>
   <div class="dashboard professional">
+
     <!-- Sidebar -->
     <aside :class="['sidebar', { active: sidebarOpen }]">
       <div class="sidebar-header">
         <div class="brand">
-          <span class="brand-icon">⚡</span>
-          <span class="brand-name">ServiceHub</span>
+          <img src="/images/logo.jpeg" class="brand-logo" />
+          <span class="brand-name">IServices</span>
         </div>
         <div class="pro-badge-header">
           <span class="badge-icon">💼</span>
@@ -14,342 +15,106 @@
       </div>
 
       <nav class="sidebar-nav">
-        <a
-          v-for="item in navItems"
-          :key="item.id"
-          :href="`#${item.id}`"
-          @click="activeSection = item.id"
-          :class="['nav-item', { active: activeSection === item.id }]"
+        <router-link
+          :to="{ name: 'ProfessionalHome' }"
+          class="nav-item"
         >
-          <span class="nav-icon">{{ item.icon }}</span>
-          <span class="nav-label">{{ item.label }}</span>
-          <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
-        </a>
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Dashboard</span>
+        </router-link>
+
+        <router-link
+          :to="{ name: 'ProfileProfesional' }"
+          class="nav-item"
+        >
+          <span class="nav-icon">👤</span>
+          <span class="nav-label">Mi Perfil</span>
+        </router-link>
       </nav>
 
       <div class="sidebar-footer">
         <div class="user-profile">
           <img
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Professional"
-            alt="Profile"
+            :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`"
             class="user-avatar"
           />
           <div class="user-info">
-            <div class="user-name">Carlos Mendoza</div>
-            <div class="user-role">Plomero Certificado</div>
+            <div class="user-name">{{ user?.name }}</div>
+            <div class="user-role">{{ formattedRole }}</div>
           </div>
         </div>
-        <button class="logout-btn" @click="handleLogout" title="Cerrar sesión">🚪</button>
+
+        <button class="logout-btn" @click="handleLogout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
       </div>
     </aside>
 
-    <!-- Main Content -->
+    <!-- Main -->
     <main class="main-content">
+
       <button class="mobile-toggle" @click="toggleSidebar">
         ☰
       </button>
-      <!-- Header -->
 
-      
       <header class="content-header">
-        <div class="header-left">
-          <h1 class="page-title">Mi Negocio</h1>
+        <div>
           <p class="page-subtitle">
-            ¡Hola Carlos! Tienes 5 solicitudes nuevas 🎉
+            Panel profesional
           </p>
-        </div>
-        <div class="header-right">
-          <button class="icon-btn">
-            <span class="notification-dot"></span>🔔
-          </button>
-          <button class="icon-btn">⚙️</button>
         </div>
       </header>
 
-      <div
-        v-if="needsProfileCompletion"
-        class="profile-warning"
-      >
-        <h3>⚠️ Completa tu perfil profesional</h3>
-        <p>
-          Para comenzar a recibir solicitudes de trabajo debes completar tu
-          información profesional.
-        </p>
+      <!-- Aquí se renderizan las vistas hijas -->
+      <router-view />
 
-        <button @click="$router.push('/professional/profile')" class="complete-btn">
-          Completar ahora
-        </button>
-      </div>
-
-      <!-- Earnings Overview -->
-      <div class="earnings-section">
-        <div class="earnings-card main">
-          <div class="earnings-header">
-            <div class="earnings-label">Ganancias Este Mes</div>
-            <button class="period-selector">Febrero 2026 ▼</button>
-          </div>
-          <div class="earnings-amount">$3,280</div>
-          <div class="earnings-change positive">+18.5% vs mes anterior</div>
-          <div class="earnings-chart">
-            <div
-              class="chart-bar"
-              v-for="(value, index) in chartData"
-              :key="index"
-              :style="{ height: value + '%' }"
-            >
-              <div class="bar-tooltip">${{ Math.round(value * 50) }}</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="earnings-stats">
-          <div class="stat-box">
-            <div class="stat-icon">📋</div>
-            <div class="stat-value">23</div>
-            <div class="stat-label">Servicios Activos</div>
-            <div class="stat-trend">+5 esta semana</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-icon">✅</div>
-            <div class="stat-value">156</div>
-            <div class="stat-label">Completados</div>
-            <div class="stat-trend">98% éxito</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-icon">⭐</div>
-            <div class="stat-value">4.9</div>
-            <div class="stat-label">Calificación</div>
-            <div class="stat-trend">234 reviews</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="section">
-        <h2 class="section-title">Acciones Rápidas</h2>
-        <div class="actions-grid">
-          <button class="action-card primary">
-            <span class="action-icon">➕</span>
-            <div class="action-content">
-              <div class="action-name">Nuevo Servicio</div>
-              <div class="action-desc">Publicar oferta</div>
-            </div>
-          </button>
-          <button class="action-card">
-            <span class="action-icon">📅</span>
-            <div class="action-content">
-              <div class="action-name">Mi Calendario</div>
-              <div class="action-desc">Ver agenda</div>
-            </div>
-          </button>
-          <button class="action-card">
-            <span class="action-icon">💬</span>
-            <div class="action-content">
-              <div class="action-name">Mensajes</div>
-              <div class="action-desc">5 nuevos</div>
-            </div>
-          </button>
-          <button class="action-card">
-            <span class="action-icon">📊</span>
-            <div class="action-content">
-              <div class="action-name">Reportes</div>
-              <div class="action-desc">Ver analytics</div>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      <!-- New Requests -->
-      <div class="section">
-        <div class="section-header">
-          <h2 class="section-title">Nuevas Solicitudes</h2>
-          <a href="#" class="view-all">Ver todas →</a>
-        </div>
-
-        <div class="requests-list">
-          <div
-            v-for="request in newRequests"
-            :key="request.id"
-            class="request-card"
-          >
-            <div class="request-header">
-              <img
-                :src="request.clientAvatar"
-                alt="Client"
-                class="request-avatar"
-              />
-              <div class="request-info">
-                <div class="request-client">{{ request.clientName }}</div>
-                <div class="request-service">{{ request.service }}</div>
-              </div>
-              <span class="request-time">{{ request.timeAgo }}</span>
-            </div>
-
-            <p class="request-description">{{ request.description }}</p>
-
-            <div class="request-details">
-              <div class="detail-item">
-                <span class="detail-icon">📍</span>
-                <span>{{ request.location }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-icon">📅</span>
-                <span>{{ request.date }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-icon">💰</span>
-                <span>Presupuesto: ${{ request.budget }}</span>
-              </div>
-            </div>
-
-            <div class="request-actions">
-              <button class="btn-decline">Rechazar</button>
-              <button class="btn-accept">Aceptar Solicitud</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Active Jobs -->
-      <div class="section">
-        <div class="section-header">
-          <h2 class="section-title">Trabajos en Curso</h2>
-          <a href="#" class="view-all">Ver todos →</a>
-        </div>
-
-        <div class="jobs-grid">
-          <div v-for="job in activeJobs" :key="job.id" class="job-card">
-            <div class="job-status-badge" :class="job.status">
-              {{ job.statusLabel }}
-            </div>
-            <div class="job-client">
-              <img :src="job.clientAvatar" alt="Client" class="job-avatar" />
-              <div>
-                <div class="job-client-name">{{ job.clientName }}</div>
-                <div class="job-service-name">{{ job.serviceName }}</div>
-              </div>
-            </div>
-            <div class="job-progress-section">
-              <div class="progress-label">
-                <span>Progreso</span>
-                <span>{{ job.progress }}%</span>
-              </div>
-              <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{ width: job.progress + '%' }"
-                ></div>
-              </div>
-            </div>
-            <div class="job-info-grid">
-              <div class="job-info-item">
-                <span class="info-icon">💰</span>
-                <span>${{ job.amount }}</span>
-              </div>
-              <div class="job-info-item">
-                <span class="info-icon">📅</span>
-                <span>{{ job.deadline }}</span>
-              </div>
-            </div>
-            <button class="job-action-btn">Ver Detalles →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Reviews Section -->
-      <div class="section">
-        <div class="section-header">
-          <h2 class="section-title">Últimas Reseñas</h2>
-          <a href="#" class="view-all">Ver todas →</a>
-        </div>
-
-        <div class="reviews-list">
-          <div
-            v-for="review in recentReviews"
-            :key="review.id"
-            class="review-card"
-          >
-            <div class="review-header">
-              <img
-                :src="review.clientAvatar"
-                alt="Client"
-                class="review-avatar"
-              />
-              <div class="review-info">
-                <div class="review-client">{{ review.clientName }}</div>
-                <div class="review-rating">
-                  <span class="stars"
-                    >{{ '★'.repeat(review.rating)
-                    }}{{ '☆'.repeat(5 - review.rating) }}</span
-                  >
-                  <span class="review-date">{{ review.date }}</span>
-                </div>
-              </div>
-            </div>
-            <p class="review-text">{{ review.text }}</p>
-            <div class="review-service">{{ review.service }}</div>
-          </div>
-        </div>
-      </div>
     </main>
   </div>
 </template>
 
 <script setup>
-
-import { ref, onMounted } from "vue";
-import professionalService from "../services/professionalService";
-import { useAuthStore } from '@/stores/auth';
-
-const activeSection = ref('dashboard');
+import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const sidebarOpen = ref(false)
+const authStore = useAuthStore()
+const route = useRoute()
 
-const authStore = useAuthStore();
+const user = ref(null)
+
+
+watch(
+  () => route.fullPath,
+  () => {
+    sidebarOpen.value = false
+  }
+)
+
+if (localStorage.getItem('user')) {
+  user.value = JSON.parse(localStorage.getItem('user'))
+}
+
+const formattedRole = computed(() => {
+  if (!user.value?.role) return ''
+
+  if (user.value.role === 'professional') {
+    return 'Profesional'
+  }
+
+  return user.value.role
+})
 
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
 }
 
-const navItems = [
-  { id: 'dashboard', icon: '🏠', label: 'Dashboard' },
-  { id: 'requests', icon: '📬', label: 'Solicitudes', badge: '5' },
-  { id: 'jobs', icon: '📋', label: 'Trabajos', badge: '23' },
-  { id: 'calendar', icon: '📅', label: 'Calendario' },
-  { id: 'earnings', icon: '💰', label: 'Ganancias' },
-  { id: 'reviews', icon: '⭐', label: 'Reseñas' },
-  { id: 'profile', icon: '👤', label: 'Mi Perfil' },
-  { id: 'settings', icon: '⚙️', label: 'Configuración' },
-];
-
-
-const professional = ref(null);
-const needsProfileCompletion = ref(false);
-const loading = ref(true);
-const handleLogout   = () => authStore.logout();
-
-const loadDashboard = async () => {
-  try {
-    const { data } = await professionalService.getDashboard();
-
-    professional.value = data.professional;
-    needsProfileCompletion.value = data.needs_profile_completion;
-
-  } catch (error) {
-    console.error(error);
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(loadDashboard);
-
-const logout = () => {
-  window.location.href = '/login';
-};
+const handleLogout = () => {
+  authStore.logout()
+}
 </script>
 
-<style scoped>
+<style>
 /* Base styles inherited from Client Dashboard */
 .dashboard {
   display: flex;
@@ -360,7 +125,7 @@ const logout = () => {
 
 .sidebar {
   width: 280px;
-  background: white;
+  background: #ffffff;
   border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
@@ -368,6 +133,8 @@ const logout = () => {
   height: 100vh;
   left: 0;
   top: 0;
+  box-shadow: 4px 0 25px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
 }
 
 .sidebar-header {
@@ -420,24 +187,27 @@ const logout = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  margin-bottom: 4px;
-  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 6px;
+  border-radius: 14px;
   color: #64748b;
   text-decoration: none;
   font-weight: 600;
   font-size: 15px;
-  transition: all 0.3s;
+  transition: all 0.25s ease;
 }
 
 .nav-item:hover {
-  background: #f8fafc;
+  background: #f1f5f9;
   color: #2563eb;
+  transform: translateX(4px);
 }
 
-.nav-item.active {
+.nav-item.router-link-active {
   background: linear-gradient(135deg, #eff6ff, #dbeafe);
   color: #2563eb;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
 
 .nav-icon {
@@ -464,6 +234,7 @@ const logout = () => {
   display: flex;
   align-items: center;
   gap: 12px;
+  background: #fafafa;
 }
 
 .user-profile {
@@ -496,32 +267,38 @@ const logout = () => {
 }
 
 .logout-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   border: none;
   background: #f1f5f9;
   font-size: 18px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logout-btn:hover {
   background: #fee2e2;
-  transform: scale(1.05);
+  color: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.15);
 }
 
 .main-content {
   flex: 1;
   margin-left: 280px;
-  padding: 32px 40px;
+  padding: 40px;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
 .content-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .page-title {
@@ -1285,5 +1062,18 @@ const logout = () => {
   padding: 10px 16px;
   border-radius: 8px;
   cursor: pointer;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 35px;
+  height: 35px;
+  object-fit: cover;
+  border-radius: 8px;
 }
 </style>

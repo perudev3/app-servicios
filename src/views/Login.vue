@@ -12,7 +12,7 @@
       <div class="login-header">
         <div class="brand">
           <span class="brand-icon">⚡</span>
-          <span class="brand-name">ServiceHub</span>
+          <span class="brand-name">IServices</span>
         </div>
         <p class="tagline">Conecta. Contrata. Crece.</p>
       </div>

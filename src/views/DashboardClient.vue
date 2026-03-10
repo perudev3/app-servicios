@@ -1,5 +1,9 @@
 <template>
-  <div class="dashboard">
+  <div class="dashboard client" :class="{ 'sidebar-open': sidebarOpen }">
+
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" @click="sidebarOpen = false"></div>
+
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -7,14 +11,15 @@
           <span class="brand-icon">⚡</span>
           <span class="brand-name">ServiceHub</span>
         </div>
+        <button class="sidebar-close-btn" @click="sidebarOpen = false">✕</button>
       </div>
 
       <nav class="sidebar-nav">
         <a
           v-for="item in navItems"
           :key="item.id"
-          :href="`#${item.id}`"
-          @click="activeSection = item.id"
+          href="#"
+          @click.prevent="navigate(item.id)"
           :class="['nav-item', { active: activeSection === item.id }]"
         >
           <span class="nav-icon">{{ item.icon }}</span>
@@ -26,303 +31,169 @@
       <div class="sidebar-footer">
         <div class="user-profile">
           <img
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Client"
+            :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${authStore.user?.name ?? 'Client'}`"
             alt="Profile"
             class="user-avatar"
           />
           <div class="user-info">
-            <div class="user-name">María González</div>
-            <div class="user-role">Cliente Premium</div>
+            <div class="user-name">{{ authStore.user?.name ?? 'Cliente' }}</div>
+            <div class="user-role">{{ roleLabel }}</div>
           </div>
         </div>
-        <button class="logout-btn" @click="logout">
-          <span>🚪</span>
-        </button>
+        <button class="logout-btn" @click="handleLogout" title="Cerrar sesión">🚪</button>
       </div>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Header -->
+
+      <!-- Mobile Topbar -->
+      <div class="mobile-topbar">
+        <button class="hamburger-btn" @click="sidebarOpen = true">☰</button>
+        <div class="mobile-brand">
+          <span>⚡</span>
+          <span>ServiceHub</span>
+        </div>
+        <button class="icon-btn small">🔔</button>
+      </div>
+
+      <!-- Desktop Header -->
       <header class="content-header">
         <div class="header-left">
           <h1 class="page-title">Dashboard</h1>
-          <p class="page-subtitle">Bienvenida de nuevo, María 👋</p>
+          <p class="page-subtitle">
+            Bienvenido, <strong>{{ authStore.user?.name }}</strong>
+            <span class="date-text"> · {{ currentDate }}</span>
+          </p>
         </div>
         <div class="header-right">
-          <button class="icon-btn">
+          <button class="icon-btn" title="Notificaciones">
             <span class="notification-dot"></span>
             🔔
           </button>
-          <button class="icon-btn">⚙️</button>
+          <button class="icon-btn" title="Configuración">⚙️</button>
         </div>
       </header>
 
-      <!-- Stats Cards -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon">📋</div>
-          <div class="stat-content">
-            <div class="stat-value">12</div>
-            <div class="stat-label">Servicios Activos</div>
-          </div>
-          <div class="stat-trend positive">+3 este mes</div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon">✅</div>
-          <div class="stat-content">
-            <div class="stat-value">48</div>
-            <div class="stat-label">Completados</div>
-          </div>
-          <div class="stat-trend positive">+12 este mes</div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon">💰</div>
-          <div class="stat-content">
-            <div class="stat-value">$2,450</div>
-            <div class="stat-label">Gastado Total</div>
-          </div>
-          <div class="stat-trend neutral">Este año</div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon">⭐</div>
-          <div class="stat-content">
-            <div class="stat-value">4.9</div>
-            <div class="stat-label">Calificación Promedio</div>
-          </div>
-          <div class="stat-trend positive">Excelente</div>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="section">
-        <h2 class="section-title">Acciones Rápidas</h2>
-        <div class="actions-grid">
-          <button class="action-card">
-            <span class="action-icon">🔍</span>
-            <div class="action-content">
-              <div class="action-name">Buscar Servicios</div>
-              <div class="action-desc">Encuentra profesionales</div>
-            </div>
-            <span class="action-arrow">→</span>
-          </button>
-
-          <button class="action-card">
-            <span class="action-icon">📅</span>
-            <div class="action-content">
-              <div class="action-name">Agendar Cita</div>
-              <div class="action-desc">Programa un servicio</div>
-            </div>
-            <span class="action-arrow">→</span>
-          </button>
-
-          <button class="action-card">
-            <span class="action-icon">💬</span>
-            <div class="action-content">
-              <div class="action-name">Mensajes</div>
-              <div class="action-desc">Chatea con profesionales</div>
-            </div>
-            <span class="action-arrow">→</span>
-          </button>
-
-          <button class="action-card">
-            <span class="action-icon">📊</span>
-            <div class="action-content">
-              <div class="action-name">Historial</div>
-              <div class="action-desc">Ver servicios pasados</div>
-            </div>
-            <span class="action-arrow">→</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Active Services -->
-      <div class="section">
-        <div class="section-header">
-          <h2 class="section-title">Servicios Activos</h2>
-          <a href="#" class="view-all">Ver todos →</a>
-        </div>
-
-        <div class="services-list">
-          <div
-            v-for="service in activeServices"
-            :key="service.id"
-            class="service-card"
-          >
-            <div class="service-header">
-              <img
-                :src="service.providerAvatar"
-                alt="Provider"
-                class="service-avatar"
-              />
-              <div class="service-info">
-                <div class="service-provider">{{ service.providerName }}</div>
-                <div class="service-type">{{ service.type }}</div>
-              </div>
-              <span :class="['service-status', service.status]">
-                {{ service.statusLabel }}
-              </span>
-            </div>
-
-            <div class="service-details">
-              <div class="detail-item">
-                <span class="detail-icon">📅</span>
-                <span class="detail-text">{{ service.date }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-icon">💰</span>
-                <span class="detail-text">${{ service.price }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-icon">📍</span>
-                <span class="detail-text">{{ service.location }}</span>
-              </div>
-            </div>
-
-            <div class="service-progress">
-              <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{ width: service.progress + '%' }"
-                ></div>
-              </div>
-              <span class="progress-text"
-                >{{ service.progress }}% completado</span
-              >
-            </div>
-
-            <div class="service-actions">
-              <button class="btn-secondary">Contactar</button>
-              <button class="btn-primary">Ver Detalles</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recommended Professionals -->
-      <div class="section">
-        <div class="section-header">
-          <h2 class="section-title">Profesionales Recomendados</h2>
-          <a href="#" class="view-all">Ver más →</a>
-        </div>
-
-        <div class="professionals-grid">
-          <div v-for="pro in recommendedPros" :key="pro.id" class="pro-card">
-            <div class="pro-header">
-              <img :src="pro.avatar" alt="Professional" class="pro-avatar" />
-              <span class="pro-badge">⭐ Top</span>
-            </div>
-            <h3 class="pro-name">{{ pro.name }}</h3>
-            <p class="pro-role">{{ pro.role }}</p>
-            <div class="pro-rating">
-              <span class="stars">★★★★★</span>
-              <span class="rating-value"
-                >{{ pro.rating }} ({{ pro.reviews }})</span
-              >
-            </div>
-            <div class="pro-tags">
-              <span v-for="tag in pro.tags" :key="tag" class="pro-tag">{{
-                tag
-              }}</span>
-            </div>
-            <button class="pro-hire-btn">Contratar Ahora</button>
-          </div>
-        </div>
-      </div>
+      <RouterView />
     </main>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-bottom-nav">
+      <a
+        v-for="item in mobileNavItems"
+        :key="item.id"
+        href="#"
+        @click.prevent="navigate(item.id)"
+        :class="['mobile-nav-item', { active: activeSection === item.id }]"
+      >
+        <span class="mobile-nav-icon">{{ item.icon }}</span>
+        <span class="mobile-nav-label">{{ item.label }}</span>
+      </a>
+      <a href="#" class="mobile-nav-item" @click.prevent="sidebarOpen = true">
+        <span class="mobile-nav-icon">☰</span>
+        <span class="mobile-nav-label">Más</span>
+      </a>
+    </nav>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+
+const route     = useRoute();
+const router    = useRouter();
+const authStore = useAuthStore();
 
 const activeSection = ref('dashboard');
+const sidebarOpen   = ref(false);
+
+// Sync active section with current route
+watch(() => route.name, (name) => {
+  const map = {
+    'ClientDashboard': 'dashboard',
+    'ClientServices':  'services',
+    'ClientSearch':    'search',
+    'ClientMessages':  'messages',
+    'ClientFavorites': 'favorites',
+    'ClientHistory':   'history',
+    'ClientSettings':  'settings',
+  };
+  activeSection.value = map[name] ?? 'dashboard';
+}, { immediate: true });
+
+// Close sidebar on Escape
+const onKeydown = (e) => { if (e.key === 'Escape') sidebarOpen.value = false; };
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onUnmounted(() => window.removeEventListener('keydown', onKeydown));
+
+const navigate = (id) => {
+  sidebarOpen.value = false;
+
+  const routeMap = {
+    dashboard: { name: 'ClientDashboard' },
+    services:  { name: 'ClientServices' },
+    search:    { name: 'ClientSearch' },
+    messages:  { name: 'ClientMessages' },
+    favorites: { name: 'ClientFavorites' },
+    history:   { name: 'ClientHistory' },
+    settings:  { name: 'ClientSettings' },
+  };
+
+  if (routeMap[id]) router.push(routeMap[id]);
+};
+
+const roleMap  = { client: 'Cliente Premium', admin: 'Administrador', professional: 'Profesional' };
+const roleLabel   = computed(() => roleMap[authStore.user?.role] ?? authStore.user?.role ?? 'Cliente');
+const currentDate = computed(() =>
+  new Date().toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+);
+
+const handleLogout = () => authStore.logout();
 
 const navItems = [
   { id: 'dashboard', icon: '🏠', label: 'Dashboard' },
-  { id: 'services', icon: '📋', label: 'Mis Servicios', badge: '12' },
-  { id: 'search', icon: '🔍', label: 'Buscar' },
-  { id: 'messages', icon: '💬', label: 'Mensajes', badge: '3' },
+  { id: 'services',  icon: '📋', label: 'Mis Servicios', badge: '12' },
+  { id: 'search',    icon: '🔍', label: 'Buscar' },
+  { id: 'messages',  icon: '💬', label: 'Mensajes', badge: '3' },
   { id: 'favorites', icon: '❤️', label: 'Favoritos' },
-  { id: 'history', icon: '📊', label: 'Historial' },
-  { id: 'settings', icon: '⚙️', label: 'Configuración' },
+  { id: 'history',   icon: '📊', label: 'Historial' },
+  { id: 'settings',  icon: '⚙️', label: 'Configuración' },
 ];
 
-const activeServices = ref([
-  {
-    id: 1,
-    providerName: 'Carlos Mendoza',
-    providerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos',
-    type: 'Plomería Residencial',
-    status: 'in-progress',
-    statusLabel: 'En Progreso',
-    date: '15 Feb, 2026',
-    price: 150,
-    location: 'San Isidro',
-    progress: 65,
-  },
-  {
-    id: 2,
-    providerName: 'Ana Rodríguez',
-    providerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ana',
-    type: 'Diseño Web',
-    status: 'scheduled',
-    statusLabel: 'Programado',
-    date: '18 Feb, 2026',
-    price: 450,
-    location: 'Remoto',
-    progress: 20,
-  },
-]);
-
-const recommendedPros = ref([
-  {
-    id: 1,
-    name: 'Roberto Silva',
-    role: 'Carpintero Experto',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Roberto',
-    rating: 4.9,
-    reviews: 267,
-    tags: ['Muebles', 'Restauración'],
-  },
-  {
-    id: 2,
-    name: 'Laura García',
-    role: 'Desarrolladora Full Stack',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Laura',
-    rating: 5.0,
-    reviews: 156,
-    tags: ['React', 'Node.js'],
-  },
-  {
-    id: 3,
-    name: 'Miguel Torres',
-    role: 'Electricista Pro',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Miguel',
-    rating: 4.8,
-    reviews: 312,
-    tags: ['Instalaciones', 'Domótica'],
-  },
-]);
-
-const logout = () => {
-  console.log('Logging out...');
-  window.location.href = '/login';
-};
+const mobileNavItems = [
+  { id: 'dashboard', icon: '🏠', label: 'Inicio' },
+  { id: 'services',  icon: '📋', label: 'Servicios' },
+  { id: 'search',    icon: '🔍', label: 'Buscar' },
+  { id: 'messages',  icon: '💬', label: 'Mensajes' },
+];
 </script>
 
-<style scoped>
-.dashboard {
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ─── Layout ─── */
+.dashboard.client {
   display: flex;
   min-height: 100vh;
   background: #f8fafc;
   font-family: 'Outfit', -apple-system, sans-serif;
+  position: relative;
 }
 
-/* Sidebar */
+/* ─── Overlay ─── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 40;
+  backdrop-filter: blur(3px);
+}
+
+/* ─── Sidebar ─── */
 .sidebar {
   width: 280px;
   background: white;
@@ -330,629 +201,151 @@ const logout = () => {
   display: flex;
   flex-direction: column;
   position: fixed;
+  top: 0; left: 0;
   height: 100vh;
-  left: 0;
-  top: 0;
+  z-index: 50;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  overflow-y: auto;
 }
 
 .sidebar-header {
   padding: 24px 20px;
   border-bottom: 1px solid #f1f5f9;
+  position: relative;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.brand-icon {
-  font-size: 32px;
-}
-
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-icon { font-size: 32px; }
 .brand-name {
-  font-size: 24px;
-  font-weight: 900;
+  font-size: 24px; font-weight: 900;
   background: linear-gradient(135deg, #2563eb, #4f46e5);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 
-.sidebar-nav {
-  flex: 1;
-  padding: 20px 12px;
-  overflow-y: auto;
+.sidebar-close-btn {
+  display: none;
+  position: absolute; top: 16px; right: 16px;
+  width: 32px; height: 32px; border-radius: 8px;
+  border: none; background: #f1f5f9;
+  font-size: 16px; font-weight: 700; color: #64748b;
+  cursor: pointer; align-items: center; justify-content: center;
 }
+
+.sidebar-nav { flex: 1; padding: 20px 12px; overflow-y: auto; }
 
 .nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  margin-bottom: 4px;
-  border-radius: 12px;
-  color: #64748b;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 15px;
-  transition: all 0.3s;
-  position: relative;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; margin-bottom: 4px; border-radius: 12px;
+  color: #64748b; text-decoration: none;
+  font-weight: 600; font-size: 15px; transition: all 0.2s;
 }
+.nav-item:hover  { background: #f8fafc; color: #2563eb; }
+.nav-item.active { background: linear-gradient(135deg, #eff6ff, #dbeafe); color: #2563eb; }
 
-.nav-item:hover {
-  background: #f8fafc;
-  color: #2563eb;
-}
-
-.nav-item.active {
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  color: #2563eb;
-}
-
-.nav-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.nav-label {
-  flex: 1;
-}
-
-.nav-badge {
-  background: #ef4444;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 800;
-}
+.nav-icon  { font-size: 20px; width: 24px; text-align: center; flex-shrink: 0; }
+.nav-label { flex: 1; }
+.nav-badge { background: #ef4444; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 800; }
 
 .sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid #f1f5f9;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  padding: 20px; border-top: 1px solid #f1f5f9;
+  display: flex; align-items: center; gap: 12px;
+}
+.user-profile { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.user-avatar  { width: 44px; height: 44px; border-radius: 12px; border: 2px solid #e2e8f0; flex-shrink: 0; }
+.user-info    { min-width: 0; }
+.user-name    { font-weight: 700; font-size: 14px; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role    { font-size: 12px; color: #64748b; }
+.logout-btn   { width: 40px; height: 40px; border-radius: 10px; border: none; background: #f1f5f9; font-size: 18px; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+.logout-btn:hover { background: #fee2e2; }
+
+/* ─── Main Content ─── */
+.main-content { flex: 1; margin-left: 280px; padding: 32px 40px; min-width: 0; }
+
+/* ─── Mobile Topbar ─── */
+.mobile-topbar {
+  display: none; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: white; border-bottom: 1px solid #e2e8f0;
+  position: sticky; top: 0; z-index: 30;
+  margin: 0 -20px 20px;
+}
+.hamburger-btn {
+  width: 44px; height: 44px; border-radius: 12px; border: none; background: #f1f5f9;
+  font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.mobile-brand {
+  display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 900;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 
-.user-profile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.user-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  border: 2px solid #e2e8f0;
-}
-
-.user-info {
-  flex: 1;
-}
-
-.user-name {
-  font-weight: 700;
-  font-size: 14px;
-  color: #1e293b;
-}
-
-.user-role {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.logout-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  border: none;
-  background: #f1f5f9;
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.logout-btn:hover {
-  background: #fee2e2;
-  transform: scale(1.05);
-}
-
-/* Main Content */
-.main-content {
-  flex: 1;
-  margin-left: 280px;
-  padding: 32px 40px;
-}
-
+/* ─── Desktop Header ─── */
 .content-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 32px; gap: 16px;
 }
-
-.page-title {
-  font-size: 32px;
-  font-weight: 900;
-  color: #0f172a;
-  margin-bottom: 4px;
-}
-
-.page-subtitle {
-  color: #64748b;
-  font-size: 16px;
-}
-
-.header-right {
-  display: flex;
-  gap: 12px;
-}
+.page-title    { font-size: 32px; font-weight: 900; color: #0f172a; margin-bottom: 4px; line-height: 1.2; }
+.page-subtitle { color: #64748b; font-size: 14px; }
+.header-right  { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 
 .icon-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  border: none;
-  background: white;
-  font-size: 20px;
-  cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 48px; height: 48px; border-radius: 12px; border: none; background: white;
+  font-size: 20px; cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  display: flex; align-items: center; justify-content: center;
   position: relative;
 }
-
-.icon-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
+.icon-btn.small { width: 40px; height: 40px; font-size: 18px; box-shadow: none; background: #f1f5f9; }
+.icon-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
 
 .notification-dot {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 8px;
-  height: 8px;
-  background: #ef4444;
-  border-radius: 50%;
-  border: 2px solid white;
+  position: absolute; top: 10px; right: 10px;
+  width: 8px; height: 8px; background: #ef4444;
+  border-radius: 50%; border: 2px solid white;
 }
 
-/* Stats Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  margin-bottom: 40px;
+/* ─── Mobile Bottom Nav ─── */
+.mobile-bottom-nav {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0;
+  background: white; border-top: 1px solid #e2e8f0;
+  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  z-index: 30; justify-content: space-around;
+  box-shadow: 0 -4px 20px rgba(0,0,0,.08);
 }
-
-.stat-card {
-  background: white;
-  padding: 24px;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-}
-
-.stat-icon {
-  font-size: 36px;
-  margin-bottom: 12px;
-}
-
-.stat-value {
-  font-size: 32px;
-  font-weight: 900;
-  color: #0f172a;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #64748b;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.stat-trend {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
-  display: inline-block;
-}
-
-.stat-trend.positive {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.stat-trend.neutral {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-/* Sections */
-.section {
-  margin-bottom: 40px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.view-all {
-  color: #2563eb;
-  font-weight: 700;
-  font-size: 14px;
-  text-decoration: none;
-  transition: color 0.3s;
-}
-
-.view-all:hover {
-  color: #1e40af;
-}
-
-/* Actions Grid */
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 40px;
-}
-
-.action-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: white;
-  border: 2px solid #f1f5f9;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.3s;
-  text-align: left;
-}
-
-.action-card:hover {
-  border-color: #dbeafe;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.1);
-}
-
-.action-icon {
-  font-size: 28px;
-  flex-shrink: 0;
-}
-
-.action-content {
-  flex: 1;
-}
-
-.action-name {
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 2px;
-}
-
-.action-desc {
-  font-size: 13px;
-  color: #64748b;
-}
-
-.action-arrow {
-  font-size: 20px;
-  color: #cbd5e1;
-  transition: all 0.3s;
-}
-
-.action-card:hover .action-arrow {
-  color: #2563eb;
-  transform: translateX(4px);
-}
-
-/* Service Cards */
-.services-list {
-  display: grid;
-  gap: 20px;
-}
-
-.service-card {
-  background: white;
-  padding: 24px;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.service-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.service-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  border: 2px solid #f1f5f9;
-}
-
-.service-info {
-  flex: 1;
-}
-
-.service-provider {
-  font-weight: 800;
-  font-size: 16px;
-  color: #0f172a;
-}
-
-.service-type {
-  font-size: 14px;
-  color: #64748b;
-}
-
-.service-status {
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.service-status.in-progress {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.service-status.scheduled {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.service-details {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 12px;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.detail-icon {
-  font-size: 16px;
-}
-
-.detail-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.service-progress {
-  margin-bottom: 20px;
-}
-
-.progress-bar {
-  height: 8px;
-  background: #f1f5f9;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #2563eb, #3b82f6);
-  border-radius: 4px;
-  transition: width 0.3s;
-}
-
-.progress-text {
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.service-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.btn-secondary,
-.btn-primary {
-  flex: 1;
-  padding: 12px 24px;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s;
-  border: none;
-}
-
-.btn-secondary {
-  background: #f8fafc;
-  color: #475569;
-}
-
-.btn-secondary:hover {
-  background: #f1f5f9;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  color: white;
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-}
-
-/* Professionals Grid */
-.professionals-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-
-.pro-card {
-  background: white;
-  padding: 24px;
-  border-radius: 20px;
-  text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s;
-}
-
-.pro-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-}
-
-.pro-header {
-  position: relative;
-  margin-bottom: 16px;
-}
-
-.pro-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 16px;
-  border: 3px solid #f1f5f9;
-  margin: 0 auto;
-}
-
-.pro-badge {
-  position: absolute;
-  top: -8px;
-  right: calc(50% - 60px);
-  background: #fbbf24;
-  color: white;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.pro-name {
-  font-size: 18px;
-  font-weight: 800;
-  color: #0f172a;
-  margin-bottom: 4px;
+.mobile-nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  text-decoration: none; padding: 6px 10px; border-radius: 12px; transition: all .2s; min-width: 52px;
 }
+.mobile-nav-item.active { background: #eff6ff; }
+.mobile-nav-icon  { font-size: 22px; }
+.mobile-nav-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .3px; }
+.mobile-nav-item.active .mobile-nav-label { color: #2563eb; }
 
-.pro-role {
-  font-size: 14px;
-  color: #64748b;
-  margin-bottom: 12px;
-}
-
-.pro-rating {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.stars {
-  color: #fbbf24;
-  font-size: 14px;
-}
-
-.rating-value {
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-}
+/* ═══════════════════════════════════
+   BREAKPOINTS
+═══════════════════════════════════ */
 
-.pro-tags {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
+@media (max-width: 1100px) {
+  .sidebar      { width: 240px; }
+  .main-content { margin-left: 240px; padding: 24px; }
+  .page-title   { font-size: 26px; }
 }
 
-.pro-tag {
-  background: #eff6ff;
-  color: #2563eb;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.pro-hire-btn {
-  width: 100%;
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.pro-hire-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-}
+@media (max-width: 900px) {
+  .sidebar      { transform: translateX(-100%); width: 280px; }
+  .main-content { margin-left: 0; padding: 0 20px 20px; }
 
-@media (max-width: 1400px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .mobile-topbar     { display: flex; margin: 0 -20px 20px; }
+  .content-header    { display: none; }
+  .sidebar-close-btn { display: flex; }
 
-  .professionals-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
+  .sidebar-open .sidebar         { transform: translateX(0); }
+  .sidebar-open .sidebar-overlay { display: block; }
 
-@media (max-width: 1024px) {
-  .actions-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .mobile-bottom-nav { display: flex; }
 }
-
-@media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-
-  .main-content {
-    margin-left: 0;
-  }
 
-  .stats-grid,
-  .actions-grid,
-  .professionals-grid {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 640px) {
+  .main-content  { padding: 0 16px 16px; }
+  .mobile-topbar { margin: 0 -16px 16px; }
 }
 </style>

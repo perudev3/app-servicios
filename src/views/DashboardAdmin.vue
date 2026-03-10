@@ -24,7 +24,7 @@
           :key="item.id"
           href="#"
           @click.prevent="navigate(item.id)"
-          :class="['nav-item', { active: activeSection === item.id }]"
+          :class="['nav-item', { active: $route.name === (item.id === 'dashboard' ? 'DashboardAdmin' : 'AdminUsers') }]"
         >
           <span class="nav-icon">{{ item.icon }}</span>
           <span class="nav-label">{{ item.label }}</span>
@@ -83,245 +83,7 @@
         </div>
       </header>
 
-      <RouterView v-if="$route.name !== 'DashboardAdmin'" />
-
-      <template v-else>
-        <!-- Loading -->
-        <div v-if="loadingStats" class="loading-overlay">
-          <div class="loading-spinner"></div>
-          <p>Cargando estadísticas...</p>
-        </div>
-
-        <!-- Error -->
-        <div v-if="apiError" class="api-error-banner">
-          <span>⚠️ {{ apiError }}</span>
-          <button @click="apiError = ''" class="close-error">✕</button>
-        </div>
-
-        <!-- Stats Grid -->
-        <div class="main-stats-grid" v-if="!loadingStats">
-          <div class="main-stat-card users">
-            <div class="stat-header">
-              <div class="stat-icon-wrapper"><span>👥</span></div>
-              <div class="stat-trend positive">+12.5%</div>
-            </div>
-            <div class="stat-value">{{ stats.totalUsers.toLocaleString() }}</div>
-            <div class="stat-label">Usuarios Totales</div>
-            <div class="stat-breakdown">
-              <div class="breakdown-item">
-                <span class="breakdown-dot clients"></span>
-                <span>{{ stats.totalClients.toLocaleString() }} Clientes</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-dot pros"></span>
-                <span>{{ stats.totalProfessionals.toLocaleString() }} Profesionales</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="main-stat-card revenue">
-            <div class="stat-header">
-              <div class="stat-icon-wrapper"><span>💰</span></div>
-              <div class="stat-trend positive">+8.3%</div>
-            </div>
-            <div class="stat-value">${{ stats.monthlyRevenue.toLocaleString() }}</div>
-            <div class="stat-label">Ingresos Este Mes</div>
-            <div class="mini-chart">
-              <div v-for="(v, i) in revenueChart" :key="i" class="mini-bar" :style="{ height: v + '%' }"></div>
-            </div>
-          </div>
-
-          <div class="main-stat-card services">
-            <div class="stat-header">
-              <div class="stat-icon-wrapper"><span>📋</span></div>
-              <div class="stat-trend positive">+15.2%</div>
-            </div>
-            <div class="stat-value">{{ stats.activeServices.toLocaleString() }}</div>
-            <div class="stat-label">Servicios Activos</div>
-            <div class="stat-detail">
-              <span class="detail-highlight">{{ stats.pendingServices }}</span> pendientes
-            </div>
-          </div>
-
-          <div class="main-stat-card satisfaction">
-            <div class="stat-header">
-              <div class="stat-icon-wrapper"><span>⭐</span></div>
-              <div class="stat-trend positive">+0.2</div>
-            </div>
-            <div class="stat-value">{{ stats.avgRating }}/5</div>
-            <div class="stat-label">Satisfacción</div>
-            <div class="rating-bars">
-              <div class="rating-bar"><div class="bar-fill" style="width:95%"></div></div>
-              <div class="rating-bar"><div class="bar-fill" style="width:85%"></div></div>
-              <div class="rating-bar"><div class="bar-fill" style="width:70%"></div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Analytics -->
-        <div class="section">
-          <div class="analytics-card">
-            <div class="analytics-header">
-              <div>
-                <h2 class="analytics-title">Análisis de la Plataforma</h2>
-                <p class="analytics-subtitle">Últimos 30 días</p>
-              </div>
-              <div class="analytics-filters">
-                <button
-                  v-for="f in ['Usuarios', 'Servicios', 'Ingresos']"
-                  :key="f"
-                  :class="['filter-btn', { active: activeFilter === f }]"
-                  @click="activeFilter = f"
-                >{{ f }}</button>
-              </div>
-            </div>
-            <div class="analytics-chart">
-              <div class="chart-grid">
-                <div v-for="n in 5" :key="n" class="grid-line"></div>
-              </div>
-              <div class="chart-bars">
-                <div v-for="(value, index) in analyticsData" :key="index" class="chart-column">
-                  <div class="chart-bar-wrapper">
-                    <div class="chart-bar" :style="{ height: value + '%' }">
-                      <div class="bar-value">{{ Math.round(value * 10) }}</div>
-                    </div>
-                  </div>
-                  <div class="chart-label">{{ getChartLabel(index) }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="section">
-          <h2 class="section-title">Gestión Rápida</h2>
-          <div class="admin-actions-grid">
-            <button class="admin-action-card" @click="navigate('professionals')">
-              <span class="action-icon">✅</span>
-              <div class="action-info">
-                <div class="action-name">Aprobar Profesionales</div>
-                <div class="action-count">{{ stats.pendingProfessionals }} pendientes</div>
-              </div>
-            </button>
-            <button class="admin-action-card" @click="navigate('reports')">
-              <span class="action-icon">🚫</span>
-              <div class="action-info">
-                <div class="action-name">Moderación</div>
-                <div class="action-count">{{ stats.contentReports }} reportes</div>
-              </div>
-            </button>
-            <button class="admin-action-card" @click="navigate('payments')">
-              <span class="action-icon">💳</span>
-              <div class="action-info">
-                <div class="action-name">Pagos Pendientes</div>
-                <div class="action-count">${{ stats.pendingPayments.toLocaleString() }}</div>
-              </div>
-            </button>
-            <button class="admin-action-card" @click="navigate('support')">
-              <span class="action-icon">📧</span>
-              <div class="action-info">
-                <div class="action-name">Soporte</div>
-                <div class="action-count">{{ stats.supportTickets }} tickets</div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Two Columns -->
-        <div class="two-column-section">
-          <div class="section-card">
-            <div class="card-header">
-              <h3 class="card-title">Usuarios Recientes</h3>
-              <a href="#" class="view-link">Ver todos →</a>
-            </div>
-            <div v-if="loadingUsers" class="inner-loading">Cargando...</div>
-            <div v-else class="users-list">
-              <div v-for="user in recentUsers" :key="user.id" class="user-item">
-                <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`" alt="User" class="user-item-avatar" />
-                <div class="user-item-info">
-                  <div class="user-item-name">{{ user.name }}</div>
-                  <div class="user-item-type">{{ roleMap[user.role] ?? user.role }}</div>
-                </div>
-                <span :class="['user-item-status', user.email_verified_at ? 'active' : 'pending']">
-                  {{ user.email_verified_at ? 'Activo' : 'Pendiente' }}
-                </span>
-              </div>
-              <div v-if="recentUsers.length === 0" class="empty-state">No hay usuarios recientes</div>
-            </div>
-          </div>
-
-          <div class="section-card">
-            <div class="card-header">
-              <h3 class="card-title">Pendientes de Aprobación</h3>
-              <a href="#" class="view-link">Ver todos →</a>
-            </div>
-            <div class="approvals-list">
-              <div v-for="item in pendingApprovals" :key="item.id" class="approval-item">
-                <div class="approval-icon">{{ item.icon }}</div>
-                <div class="approval-info">
-                  <div class="approval-title">{{ item.title }}</div>
-                  <div class="approval-desc">{{ item.description }}</div>
-                  <div class="approval-time">{{ item.time }}</div>
-                </div>
-                <div class="approval-actions">
-                  <button class="approve-btn" @click="handleApprove(item)">✓</button>
-                  <button class="reject-btn" @click="handleReject(item)">✗</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Table -->
-        <div class="section">
-          <div class="section-card">
-            <div class="card-header">
-              <h3 class="card-title">Estadísticas por Categoría</h3>
-              <button class="export-btn">
-                <span>📊</span>
-                <span class="export-label"> Exportar</span>
-              </button>
-            </div>
-            <div class="stats-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Categoría</th>
-                    <th>Servicios</th>
-                    <th class="hide-sm">Profesionales</th>
-                    <th>Ingresos</th>
-                    <th class="hide-sm">Calificación</th>
-                    <th>Tendencia</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="category in categoryStats" :key="category.id">
-                    <td>
-                      <div class="table-category">
-                        <span class="category-icon">{{ category.icon }}</span>
-                        <span>{{ category.name }}</span>
-                      </div>
-                    </td>
-                    <td><strong>{{ category.services }}</strong></td>
-                    <td class="hide-sm">{{ category.professionals }}</td>
-                    <td><span class="revenue-value">${{ category.revenue.toLocaleString() }}</span></td>
-                    <td class="hide-sm"><span class="rating-badge">⭐ {{ category.rating }}</span></td>
-                    <td>
-                      <span :class="['trend-indicator', category.trend > 0 ? 'up' : 'down']">
-                        {{ category.trend > 0 ? '↗' : '↘' }} {{ Math.abs(category.trend) }}%
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bottom spacer for mobile nav -->
-        <div class="mobile-bottom-spacer"></div>
-      </template>
+      <RouterView />
     </main>
 
     <!-- Mobile Bottom Nav -->
@@ -378,21 +140,16 @@ onMounted(() => window.addEventListener('keydown', onKeydown));
 onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
 const navigate = (id) => {
-  activeSection.value = id;
-  sidebarOpen.value   = false;
+  sidebarOpen.value = false;
 
   const routeMap = {
-    'users':         { name: 'AdminUsers' },
-    'professionals': { name: 'AdminProfessionals' },
-    'dashboard':     { name: 'DashboardAdmin' },
-    // secciones sin ruta propia permanecen internas:
-    // payments, reviews, reports, support, settings → no navegan
+    dashboard: { name: 'DashboardAdmin' },
+    users: { name: 'AdminUsers' },
   };
 
   if (routeMap[id]) {
     router.push(routeMap[id]);
   }
-  // si no tiene ruta mapeada, solo cambia activeSection (comportamiento actual)
 };
 
 const roleMap = { admin: 'Super Administrador', client: 'Cliente', professional: 'Profesional' };
@@ -401,14 +158,7 @@ const currentDate = computed(() =>
   new Date().toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 );
 
-const stats = ref({
-  totalUsers: 0, totalClients: 0, totalProfessionals: 0,
-  monthlyRevenue: 0, activeServices: 0, pendingServices: 0,
-  avgRating: 0, pendingProfessionals: 0, contentReports: 0,
-  pendingPayments: 0, supportTickets: 0,
-});
 
-const recentUsers      = ref([]);
 const revenueChart     = ref([45, 62, 58, 71, 65, 78, 85, 68, 75, 82]);
 const analyticsData    = ref([65, 78, 72, 85, 68, 92, 75, 88, 82, 90, 78, 95, 85, 88]);
 const pendingApprovals = ref([
@@ -424,22 +174,13 @@ const categoryStats = ref([
 ]);
 
 const navItems = [
-  { id: 'dashboard',     icon: '📊', label: 'Dashboard' },
-  { id: 'users',         icon: '👥', label: 'Usuarios' , path: '/admin/users' },
-  { id: 'professionals', icon: '💼', label: 'Profesionales', badge: '23' },
-  { id: 'services',      icon: '📋', label: 'Servicios' },
-  { id: 'payments',      icon: '💰', label: 'Pagos' },
-  { id: 'reviews',       icon: '⭐', label: 'Reseñas' },
-  { id: 'reports',       icon: '📈', label: 'Reportes' },
-  { id: 'support',       icon: '💬', label: 'Soporte', badge: '34' },
-  { id: 'settings',      icon: '⚙️', label: 'Configuración' },
+  { id: 'dashboard', icon: '📊', label: 'Dashboard' },
+  { id: 'users', icon: '👥', label: 'Usuarios' },
 ];
 
 const mobileNavItems = [
-  { id: 'dashboard',  icon: '📊', label: 'Inicio'   },
-  { id: 'users',      icon: '👥', label: 'Usuarios', path: '/admin/users' },
-  { id: 'payments',   icon: '💰', label: 'Pagos'    },
-  { id: 'settings',   icon: '⚙️', label: 'Config'   },
+  { id: 'dashboard', icon: '📊', label: 'Inicio' },
+  { id: 'users', icon: '👥', label: 'Usuarios' },
 ];
 
 const getChartLabel = (index) => {
@@ -495,7 +236,7 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style>
 *, *::before, *::after { box-sizing: border-box; }
 
 /* ─── Layout ─── */

@@ -43,17 +43,26 @@ const routes = [
   },
   {
     path: '/dashboard/professional',
-    name: 'DashboardProfessional',
     component: DashboardProfessional,
     meta: {
       requiresAuth: true,
       role: 'professional',
-      title: 'Dashboard Profesional - ServiceHub',
     },
+    children: [
+      {
+        path: '',
+        name: 'ProfessionalHome',
+        component: () => import('@/views/profesional/ProfessionalHome.vue')
+      },
+      {
+        path: 'profile',
+        name: 'ProfileProfesional',
+        component: () => import('@/views/profesional/ProfessionalProfile.vue')
+      }
+    ]
   },
   {
     path: '/dashboard/admin',
-    name: 'DashboardAdmin',
     component: DashboardAdmin,
     meta: {
       requiresAuth: true,
@@ -61,6 +70,16 @@ const routes = [
       title: 'Panel Admin - ServiceHub',
     },
     children: [
+      {
+        path: '',
+        name: 'DashboardAdmin',
+        component: () => import('@/views/admin/AdminHome.vue'),
+        meta: {
+          requiresAuth: true,
+          role: 'admin',
+          title: 'Panel Admin - ServiceHub',
+        },
+      },
       {
         path:'users',
         name:'AdminUsers',

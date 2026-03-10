@@ -20,6 +20,10 @@ export default {
 
   deleteUser(id) {
     return api.delete(`/admin/users/${id}`)
+  },
+
+  bulkAction(data) {
+    return api.post('/admin/users/bulk', data)
   }
 
 }
