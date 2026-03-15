@@ -24,7 +24,7 @@
           :key="item.id"
           href="#"
           @click.prevent="navigate(item.id)"
-          :class="['nav-item', { active: $route.name === (item.id === 'dashboard' ? 'DashboardAdmin' : 'AdminUsers') }]"
+          :class="['nav-item', { active: isActive(item.id) }]"
         >
           <span class="nav-icon">{{ item.icon }}</span>
           <span class="nav-label">{{ item.label }}</span>
@@ -85,24 +85,6 @@
 
       <RouterView />
     </main>
-
-    <!-- Mobile Bottom Nav -->
-    <nav class="mobile-bottom-nav">
-      <a
-        v-for="item in mobileNavItems"
-        :key="item.id"
-        href="#"
-        @click.prevent="navigate(item.id)"
-        :class="['mobile-nav-item', { active: activeSection === item.id }]"
-      >
-        <span class="mobile-nav-icon">{{ item.icon }}</span>
-        <span class="mobile-nav-label">{{ item.label }}</span>
-      </a>
-      <a href="#" class="mobile-nav-item" @click.prevent="sidebarOpen = true">
-        <span class="mobile-nav-icon">☰</span>
-        <span class="mobile-nav-label">Más</span>
-      </a>
-    </nav>
   </div>
 </template>
 
@@ -145,12 +127,25 @@ const navigate = (id) => {
   const routeMap = {
     dashboard: { name: 'DashboardAdmin' },
     users: { name: 'AdminUsers' },
+    categories: { name: 'AdminCategories' },
   };
 
   if (routeMap[id]) {
     router.push(routeMap[id]);
   }
 };
+
+const isActive = (id) => {
+
+  const map = {
+    dashboard: 'DashboardAdmin',
+    users: 'AdminUsers',
+    categories: 'AdminCategories'
+  }
+
+  return route.name === map[id]
+
+}
 
 const roleMap = { admin: 'Super Administrador', client: 'Cliente', professional: 'Profesional' };
 const roleLabel   = computed(() => roleMap[authStore.user?.role] ?? authStore.user?.role ?? '');
@@ -176,11 +171,13 @@ const categoryStats = ref([
 const navItems = [
   { id: 'dashboard', icon: '📊', label: 'Dashboard' },
   { id: 'users', icon: '👥', label: 'Usuarios' },
+   { id: 'categories', icon: '👥', label: 'Categorias' },
 ];
 
 const mobileNavItems = [
   { id: 'dashboard', icon: '📊', label: 'Inicio' },
   { id: 'users', icon: '👥', label: 'Usuarios' },
+  { id: 'categories', icon: '👥', label: 'Categorias' },
 ];
 
 const getChartLabel = (index) => {

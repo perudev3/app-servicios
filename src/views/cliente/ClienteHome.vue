@@ -1,421 +1,434 @@
 <template>
   <div class="client-dashboard">
 
-    <!-- Stats Cards -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">📋</div>
-        <div class="stat-content">
-          <div class="stat-value">12</div>
-          <div class="stat-label">Servicios Activos</div>
-        </div>
-        <div class="stat-trend positive">+3 este mes</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon">✅</div>
-        <div class="stat-content">
-          <div class="stat-value">48</div>
-          <div class="stat-label">Completados</div>
-        </div>
-        <div class="stat-trend positive">+12 este mes</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon">💰</div>
-        <div class="stat-content">
-          <div class="stat-value">$2,450</div>
-          <div class="stat-label">Gastado Total</div>
-        </div>
-        <div class="stat-trend neutral">Este año</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon">⭐</div>
-        <div class="stat-content">
-          <div class="stat-value">4.9</div>
-          <div class="stat-label">Calificación Promedio</div>
-        </div>
-        <div class="stat-trend positive">Excelente</div>
-      </div>
-    </div>
-
-    <!-- Quick Actions -->
+    <!-- ====================== -->
+    <!-- CATEGORIAS -->
+    <!-- ====================== -->
     <div class="section">
-      <h2 class="section-title">Acciones Rápidas</h2>
-      <div class="actions-grid">
-        <button class="action-card">
-          <span class="action-icon">🔍</span>
-          <div class="action-content">
-            <div class="action-name">Buscar Servicios</div>
-            <div class="action-desc">Encuentra profesionales</div>
-          </div>
-          <span class="action-arrow">→</span>
-        </button>
-
-        <button class="action-card">
-          <span class="action-icon">📅</span>
-          <div class="action-content">
-            <div class="action-name">Agendar Cita</div>
-            <div class="action-desc">Programa un servicio</div>
-          </div>
-          <span class="action-arrow">→</span>
-        </button>
-
-        <button class="action-card">
-          <span class="action-icon">💬</span>
-          <div class="action-content">
-            <div class="action-name">Mensajes</div>
-            <div class="action-desc">Chatea con profesionales</div>
-          </div>
-          <span class="action-arrow">→</span>
-        </button>
-
-        <button class="action-card">
-          <span class="action-icon">📊</span>
-          <div class="action-content">
-            <div class="action-name">Historial</div>
-            <div class="action-desc">Ver servicios pasados</div>
-          </div>
-          <span class="action-arrow">→</span>
-        </button>
+      <h2 class="section-title">Categorías</h2>
+      <div class="categories-grid">
+        <div v-for="cat in categories" :key="cat.id" class="category-card" @click="selectCategory(cat)">
+          <div class="category-icon">🛠️</div>
+          <div class="category-name">{{ cat.name }}</div>
+        </div>
       </div>
     </div>
 
-    <!-- Active Services -->
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">Servicios Activos</h2>
-        <a href="#" class="view-all">Ver todos →</a>
-      </div>
-
-      <div class="services-list">
-        <div
-          v-for="service in activeServices"
-          :key="service.id"
-          class="service-card"
-        >
-          <div class="service-header">
-            <img
-              :src="service.providerAvatar"
-              alt="Provider"
-              class="service-avatar"
-            />
-            <div class="service-info">
-              <div class="service-provider">{{ service.providerName }}</div>
-              <div class="service-type">{{ service.type }}</div>
-            </div>
-            <span :class="['service-status', service.status]">
-              {{ service.statusLabel }}
-            </span>
+    <!-- ====================== -->
+    <!-- SERVICIOS -->
+    <!-- ====================== -->
+    <div class="section" v-if="services.length">
+      <h2 class="section-title">Servicios - {{ selectedCategory?.name }}</h2>
+      <div class="services-grid">
+        <div v-for="service in services" :key="service.id" class="service-card">
+          <div>
+            <h3>{{ service.name }}</h3>
+            <p>{{ service.description || 'Servicio profesional disponible' }}</p>
           </div>
-
-          <div class="service-details">
-            <div class="detail-item">
-              <span class="detail-icon">📅</span>
-              <span class="detail-text">{{ service.date }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-icon">💰</span>
-              <span class="detail-text">${{ service.price }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-icon">📍</span>
-              <span class="detail-text">{{ service.location }}</span>
-            </div>
-          </div>
-
-          <div class="service-progress">
-            <div class="progress-bar">
-              <div
-                class="progress-fill"
-                :style="{ width: service.progress + '%' }"
-              ></div>
-            </div>
-            <span class="progress-text">{{ service.progress }}% completado</span>
-          </div>
-
-          <div class="service-actions">
-            <button class="btn-secondary">Contactar</button>
-            <button class="btn-primary">Ver Detalles</button>
+          <div class="service-footer">
+            <span class="service-price">${{ service.price }}</span>
+            <button class="btn-primary" @click="requestService(service)">Solicitar</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Recommended Professionals -->
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">Profesionales Recomendados</h2>
-        <a href="#" class="view-all">Ver más →</a>
+    <!-- ====================== -->
+    <!-- MAPA POST-SOLICITUD -->
+    <!-- ====================== -->
+    <div v-if="showMap && activeRequest" class="section">
+      <div class="map-header">
+        <h2 class="section-title">Buscando profesional</h2>
+        <button class="btn-cancel-map" @click="cancelSearch">✕ Cancelar búsqueda</button>
       </div>
+      <ServiceRequestMap
+        :requestId="activeRequest.id"
+        :cityId="activeRequest.city_id"
+        :serviceId="activeRequest.service_id"
+        @accepted="onAccepted"
+      />
+    </div>
 
-      <div class="professionals-grid">
-        <div v-for="pro in recommendedPros" :key="pro.id" class="pro-card">
-          <div class="pro-header">
-            <img :src="pro.avatar" alt="Professional" class="pro-avatar" />
-            <span class="pro-badge">⭐ Top</span>
-          </div>
-          <h3 class="pro-name">{{ pro.name }}</h3>
-          <p class="pro-role">{{ pro.role }}</p>
-          <div class="pro-rating">
-            <span class="stars">★★★★★</span>
-            <span class="rating-value">{{ pro.rating }} ({{ pro.reviews }})</span>
-          </div>
-          <div class="pro-tags">
-            <span v-for="tag in pro.tags" :key="tag" class="pro-tag">{{ tag }}</span>
-          </div>
-          <button class="pro-hire-btn">Contratar Ahora</button>
+    <!-- ====================== -->
+    <!-- MODAL SOLICITUD -->
+    <!-- ====================== -->
+    <div v-if="showRequestModal" class="modal-overlay">
+      <div class="modal">
+
+        <h3>Solicitar {{ selectedService?.name }}</h3>
+
+        <textarea v-model="form.description" placeholder="Describe el problema o lo que necesitas"></textarea>
+
+        <input v-model="form.address" placeholder="Dirección" />
+
+        <select v-model="form.city_id">
+          <option value="" disabled>Selecciona una ciudad</option>
+          <option v-for="city in cities" :key="city.id" :value="city.id">
+            {{ city.name }} — {{ city.department }}
+          </option>
+        </select>
+
+        <input type="date" v-model="form.service_date" />
+
+        <input type="time" v-model="form.service_time" />
+
+        <input type="number" v-model="form.budget" placeholder="Presupuesto" />
+
+        <div v-if="budgetError" class="error-text">
+          El presupuesto mínimo para este servicio es ${{ selectedService?.price }}
         </div>
+
+        <div class="price-info">
+          Precio promedio del servicio: <strong>${{ selectedService?.price }}</strong>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-primary" @click="sendRequest" :disabled="budgetError || sending">
+            {{ sending ? "Enviando..." : "Enviar solicitud" }}
+          </button>
+          <button class="btn-cancel" @click="showRequestModal = false">Cancelar</button>
+        </div>
+
       </div>
     </div>
 
-    <!-- Mobile bottom spacer -->
-    <div class="mobile-bottom-spacer"></div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, computed } from "vue"
+import api from "@/services/api"
+import categoryService from "@/services/categoryService"
+import ServiceRequestMap from "./ServiceRequestMap.vue"
 
-const activeServices = ref([
-  {
-    id: 1,
-    providerName: 'Carlos Mendoza',
-    providerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos',
-    type: 'Plomería Residencial',
-    status: 'in-progress',
-    statusLabel: 'En Progreso',
-    date: '15 Feb, 2026',
-    price: 150,
-    location: 'San Isidro',
-    progress: 65,
-  },
-  {
-    id: 2,
-    providerName: 'Ana Rodríguez',
-    providerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ana',
-    type: 'Diseño Web',
-    status: 'scheduled',
-    statusLabel: 'Programado',
-    date: '18 Feb, 2026',
-    price: 450,
-    location: 'Remoto',
-    progress: 20,
-  },
-]);
+/* ======================= */
+/* STATES                  */
+/* ======================= */
+const categories      = ref([])
+const services        = ref([])
+const allServices     = ref([])
+const cities          = ref([])
+const selectedCategory = ref(null)
+const selectedService  = ref(null)
+const showRequestModal = ref(false)
+const showMap          = ref(false)
+const activeRequest    = ref(null)
+const sending          = ref(false)
 
-const recommendedPros = ref([
-  {
-    id: 1,
-    name: 'Roberto Silva',
-    role: 'Carpintero Experto',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Roberto',
-    rating: 4.9,
-    reviews: 267,
-    tags: ['Muebles', 'Restauración'],
-  },
-  {
-    id: 2,
-    name: 'Laura García',
-    role: 'Desarrolladora Full Stack',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Laura',
-    rating: 5.0,
-    reviews: 156,
-    tags: ['React', 'Node.js'],
-  },
-  {
-    id: 3,
-    name: 'Miguel Torres',
-    role: 'Electricista Pro',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Miguel',
-    rating: 4.8,
-    reviews: 312,
-    tags: ['Instalaciones', 'Domótica'],
-  },
-]);
+const form = ref({
+  description:  "",
+  address:      "",
+  city_id:      "",
+  service_date: "",
+  service_time: "",
+  budget:       ""
+})
+
+const budgetError = computed(() => {
+  if (!form.value.budget) return false
+  return parseFloat(form.value.budget) < parseFloat(selectedService.value?.price || 0)
+})
+
+/* ======================= */
+/* LOADERS                 */
+/* ======================= */
+const loadCategories = async () => {
+  try {
+    const res = await categoryService.getAllProfesional()
+    categories.value = res.data
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const loadServices = async () => {
+  try {
+    const res = await api.get("/services")
+    allServices.value = res.data
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const loadCities = async () => {
+  const res = await api.get("/cities")
+  cities.value = res.data
+}
+
+/* ======================= */
+/* SELECT CATEGORY         */
+/* ======================= */
+const selectCategory = (cat) => {
+  selectedCategory.value = cat
+  services.value = allServices.value.filter(s => s.category_id === cat.id)
+}
+
+/* ======================= */
+/* OPEN REQUEST MODAL      */
+/* ======================= */
+const requestService = (service) => {
+  selectedService.value = service
+  form.value.budget = service.price
+  showRequestModal.value = true
+}
+
+/* ======================= */
+/* SEND REQUEST            */
+/* ======================= */
+const sendRequest = async () => {
+
+  if (!form.value.city_id) {
+    alert("Selecciona una ciudad")
+    return
+  }
+
+  if (!form.value.budget) {
+    alert("Debes ingresar un presupuesto")
+    return
+  }
+
+  if (parseFloat(form.value.budget) < parseFloat(selectedService.value.price)) {
+    alert(`El presupuesto mínimo para este servicio es $${selectedService.value.price}`)
+    return
+  }
+
+  try {
+    sending.value = true
+
+    const res = await api.post("/client/service-request", {
+      category_id:  selectedCategory.value.id,
+      service_id:   selectedService.value.id,
+      description:  form.value.description,
+      address:      form.value.address,
+      city_id:      form.value.city_id,
+      service_date: form.value.service_date,
+      service_time: form.value.service_time,
+      budget:       form.value.budget
+    })
+
+    // Guardar solicitud y mostrar mapa
+    activeRequest.value = res.data.data
+    showRequestModal.value = false
+    showMap.value = true
+
+    // Reset form
+    form.value = {
+      description:  "",
+      address:      "",
+      city_id:      "",
+      service_date: "",
+      service_time: "",
+      budget:       ""
+    }
+
+  } catch (error) {
+    console.error(error)
+    alert("Error al enviar la solicitud")
+  } finally {
+    sending.value = false
+  }
+}
+
+/* ======================= */
+/* MAP EVENTS              */
+/* ======================= */
+const onAccepted = (professional) => {
+  alert(`✅ ¡${professional.name} aceptó tu solicitud!\n📞 ${professional.phone}`)
+  showMap.value = false
+  activeRequest.value = null
+}
+
+const cancelSearch = () => {
+  showMap.value = false
+  activeRequest.value = null
+}
+
+/* ======================= */
+/* INIT                    */
+/* ======================= */
+onMounted(() => {
+  loadCategories()
+  loadServices()
+  loadCities()
+})
 </script>
 
 <style scoped>
-.client-dashboard { /* no extra padding needed, layout ya lo maneja */ }
-
-/* ─── Stats Grid ─── */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  margin-bottom: 40px;
+.client-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
 }
 
-.stat-card {
+.section {
   background: white;
-  padding: 24px;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.05);
-  transition: all 0.3s;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
-.stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,.08); }
 
-.stat-icon    { font-size: 36px; margin-bottom: 12px; }
-.stat-value   { font-size: 32px; font-weight: 900; color: #0f172a; margin-bottom: 4px; }
-.stat-label   { font-size: 14px; color: #64748b; font-weight: 600; margin-bottom: 8px; }
+.section-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 20px;
+}
 
-.stat-trend          { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; display: inline-block; }
-.stat-trend.positive { background: #dcfce7; color: #16a34a; }
-.stat-trend.neutral  { background: #f1f5f9; color: #64748b; }
-
-/* ─── Sections ─── */
-.section        { margin-bottom: 40px; }
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.section-title  { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 0; }
-.view-all       { color: #2563eb; font-weight: 700; font-size: 14px; text-decoration: none; }
-.view-all:hover { color: #1e40af; }
-
-/* ─── Quick Actions ─── */
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+/* MAP HEADER */
+.map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 0;
 }
 
-.action-card {
-  display: flex; align-items: center; gap: 16px;
-  padding: 20px; background: white;
-  border: 2px solid #f1f5f9; border-radius: 16px;
-  cursor: pointer; transition: all 0.3s; text-align: left; width: 100%;
-}
-.action-card:hover { border-color: #dbeafe; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37,99,235,.1); }
-
-.action-icon    { font-size: 28px; flex-shrink: 0; }
-.action-content { flex: 1; }
-.action-name    { font-weight: 700; color: #0f172a; margin-bottom: 2px; font-size: 14px; }
-.action-desc    { font-size: 13px; color: #64748b; }
-.action-arrow   { font-size: 20px; color: #cbd5e1; transition: all 0.3s; }
-.action-card:hover .action-arrow { color: #2563eb; transform: translateX(4px); }
-
-/* ─── Service Cards ─── */
-.services-list { display: grid; gap: 20px; }
-
-.service-card {
-  background: white; padding: 24px;
-  border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+.map-header .section-title {
+  margin-bottom: 0;
 }
 
-.service-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
-.service-avatar { width: 56px; height: 56px; border-radius: 14px; border: 2px solid #f1f5f9; flex-shrink: 0; }
-.service-info   { flex: 1; min-width: 0; }
-.service-provider { font-weight: 800; font-size: 16px; color: #0f172a; }
-.service-type     { font-size: 14px; color: #64748b; }
-
-.service-status             { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
-.service-status.in-progress { background: #dbeafe; color: #2563eb; }
-.service-status.scheduled   { background: #fef3c7; color: #d97706; }
-
-.service-details {
-  display: flex; gap: 24px; flex-wrap: wrap;
-  margin-bottom: 20px; padding: 16px;
-  background: #f8fafc; border-radius: 12px;
+.btn-cancel-map {
+  background: #fee2e2;
+  color: #991b1b;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
 }
-.detail-item  { display: flex; align-items: center; gap: 8px; }
-.detail-icon  { font-size: 16px; }
-.detail-text  { font-size: 14px; font-weight: 600; color: #475569; }
 
-.service-progress { margin-bottom: 20px; }
-.progress-bar     { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
-.progress-fill    { height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 4px; transition: width 0.3s; }
-.progress-text    { font-size: 13px; color: #64748b; font-weight: 600; }
-
-.service-actions { display: flex; gap: 12px; }
-
-.btn-secondary, .btn-primary {
-  flex: 1; padding: 12px 24px; border-radius: 10px;
-  font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s; border: none;
+/* CATEGORIAS */
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 15px;
 }
-.btn-secondary       { background: #f8fafc; color: #475569; }
-.btn-secondary:hover { background: #f1f5f9; }
-.btn-primary         { background: linear-gradient(135deg, #2563eb, #3b82f6); color: white; }
-.btn-primary:hover   { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,.3); }
 
-/* ─── Professionals Grid ─── */
-.professionals-grid {
+.category-card {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: .3s;
+}
+
+.category-card:hover {
+  background: #2563eb;
+  color: white;
+}
+
+.category-icon {
+  font-size: 30px;
+  margin-bottom: 8px;
+}
+
+.category-name { font-weight: 700; }
+
+/* SERVICIOS */
+.services-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 20px;
 }
 
-.pro-card {
-  background: white; padding: 24px; border-radius: 20px;
-  text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.05); transition: all 0.3s;
-}
-.pro-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,.08); }
-
-.pro-header   { position: relative; margin-bottom: 16px; }
-.pro-avatar   { width: 80px; height: 80px; border-radius: 16px; border: 3px solid #f1f5f9; margin: 0 auto; }
-.pro-badge    { position: absolute; top: -8px; right: calc(50% - 60px); background: #fbbf24; color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; }
-
-.pro-name   { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
-.pro-role   { font-size: 14px; color: #64748b; margin-bottom: 12px; }
-.pro-rating { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; }
-.stars        { color: #fbbf24; font-size: 14px; }
-.rating-value { font-size: 13px; font-weight: 600; color: #475569; }
-
-.pro-tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
-.pro-tag  { background: #eff6ff; color: #2563eb; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; }
-
-.pro-hire-btn {
-  width: 100%; padding: 12px 24px;
-  background: linear-gradient(135deg, #2563eb, #3b82f6); color: white;
-  border: none; border-radius: 10px; font-weight: 700; font-size: 14px;
-  cursor: pointer; transition: all 0.3s;
-}
-.pro-hire-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,.3); }
-
-/* ─── Mobile spacer ─── */
-.mobile-bottom-spacer { display: none; height: 80px; }
-
-/* ═══════════════════════════════════
-   BREAKPOINTS
-═══════════════════════════════════ */
-
-@media (max-width: 1400px) {
-  .stats-grid          { grid-template-columns: repeat(2, 1fr); }
-  .professionals-grid  { grid-template-columns: repeat(2, 1fr); }
+.service-card {
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-@media (max-width: 1024px) {
-  .actions-grid { grid-template-columns: repeat(2, 1fr); }
+.service-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
 }
 
-@media (max-width: 900px) {
-  .mobile-bottom-spacer { display: block; }
+.service-price {
+  font-weight: 800;
+  color: #2563eb;
 }
 
-@media (max-width: 640px) {
-  .stats-grid   { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .actions-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .professionals-grid { grid-template-columns: 1fr; }
-
-  .stat-card  { padding: 16px; }
-  .stat-value { font-size: 26px; }
-  .stat-icon  { font-size: 28px; margin-bottom: 8px; }
-
-  .service-details { gap: 12px; }
-  .action-card     { padding: 14px; gap: 10px; }
+.btn-primary {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-@media (max-width: 480px) {
-  .stats-grid         { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .professionals-grid { grid-template-columns: 1fr; }
-  .section-title      { font-size: 20px; }
-
-  .service-header  { flex-wrap: wrap; }
-  .service-actions { flex-direction: column; }
-  .btn-secondary, .btn-primary { flex: none; width: 100%; }
+.btn-cancel {
+  background: #e5e7eb;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-@media (max-width: 360px) {
-  .stats-grid   { grid-template-columns: 1fr; }
-  .actions-grid { grid-template-columns: 1fr 1fr; }
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal {
+  background: white;
+  padding: 25px;
+  border-radius: 14px;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal textarea,
+.modal input,
+.modal select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  width: 100%;
+}
+
+.modal textarea { resize: none; }
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.error-text {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: -5px;
+}
+
+.price-info {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* RESPONSIVE */
+@media(max-width:1100px) {
+  .categories-grid { grid-template-columns: repeat(3, 1fr); }
+  .services-grid   { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media(max-width:600px) {
+  .categories-grid { grid-template-columns: repeat(2, 1fr); }
+  .services-grid   { grid-template-columns: 1fr; }
 }
 </style>

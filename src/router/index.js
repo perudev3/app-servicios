@@ -13,6 +13,7 @@ import DashboardProfessional from '@/views/DashboardProfessional.vue';
 // Dashboard Admin
 import DashboardAdmin from '@/views/DashboardAdmin.vue';
 import UsuariosScreen from '@/views/admin/UsuariosScreen.vue';
+import CategoryScreen from '@/views/admin/Categories.vue';
 
 const routes = [
   {
@@ -20,7 +21,7 @@ const routes = [
     name: 'Landing',
     component: Landing,
     meta: {
-      title: 'ServiceHub - Encuentra profesionales de confianza',
+      title: 'IService - Encuentra profesionales de confianza',
     },
   },
   {
@@ -28,9 +29,10 @@ const routes = [
     name: 'Login',
     component: Login,
     meta: {
-      title: 'Iniciar Sesión - ServiceHub',
+      title: 'Iniciar Sesión - IService',
     },
   },
+  //Cliente
   {
     path: '/dashboard/client',
     name: 'DashboardClient',
@@ -38,9 +40,17 @@ const routes = [
     meta: {
       requiresAuth: true,
       role: 'client',
-      title: 'Dashboard Cliente - ServiceHub',
+      title: 'Dashboard Cliente - IService',
     },
+     children: [
+      {
+        path: '',
+        name: 'ClientelHome',
+        component: () => import('@/views/cliente/ClienteHome.vue')
+      },
+    ]
   },
+  //Profesional
   {
     path: '/dashboard/professional',
     component: DashboardProfessional,
@@ -61,13 +71,14 @@ const routes = [
       }
     ]
   },
+  //Administrador
   {
     path: '/dashboard/admin',
     component: DashboardAdmin,
     meta: {
       requiresAuth: true,
       role: 'admin',
-      title: 'Panel Admin - ServiceHub',
+      title: 'Panel Admin - IService',
     },
     children: [
       {
@@ -77,17 +88,27 @@ const routes = [
         meta: {
           requiresAuth: true,
           role: 'admin',
-          title: 'Panel Admin - ServiceHub',
+          title: 'Panel Admin - IService',
         },
       },
       {
-        path:'users',
-        name:'AdminUsers',
+        path: 'users',
+        name: 'AdminUsers',
         component: UsuariosScreen,
         meta: {
           requiresAuth: true,
           role: 'admin',
-          title: 'Panel Usuarios - ServiceHub',
+          title: 'Panel Usuarios - IService',
+        },
+      },
+      {
+        path: 'categories',
+        name: 'AdminCategories',
+        component: CategoryScreen,
+        meta: {
+          requiresAuth: true,
+          role: 'admin',
+          title: 'Panel Categorias - IService',
         },
       }
     ]
@@ -127,7 +148,7 @@ const router = createRouter({
 // Navigation Guard - Authentication
 router.beforeEach((to, from, next) => {
   // Update page title
-  document.title = to.meta.title || 'ServiceHub';
+  document.title = to.meta.title || 'IService';
 
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
   const userRole = localStorage.getItem('userRole');

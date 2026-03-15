@@ -3,10 +3,8 @@
     <div class="profile-card">
 
       <div class="profile-header">
-        <img
-          :src="photoPreview || 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProfessionalProfile'"
-          class="profile-avatar"
-        />
+        <img :src="photoPreview || 'https://api.dicebear.com/7.x/avataaars/svg?seed=ProfessionalProfile'"
+          class="profile-avatar" />
         <div class="form-group full">
           <label>Foto Profesional *</label>
           <input type="file" @change="handleFile($event, 'photo')" />
@@ -23,13 +21,32 @@
         <!-- Categoría -->
         <div class="form-group">
           <label>Especialidad *</label>
-          <select v-model="form.category_id">
+          <select v-model="form.category_id" @change="filterServices">
             <option value="" disabled>Selecciona una categoría</option>
             <option v-for="category in categories" :key="category.id" :value="category.id">
               {{ category.name }}
             </option>
           </select>
           <small v-if="errors.category_id" class="error">{{ errors.category_id[0] }}</small>
+        </div>
+
+        <!-- Servicio -->
+        <div class="form-group">
+          <label>Servicio *</label>
+
+          <select v-model="form.service_id">
+            <option value="" disabled>Selecciona un servicio</option>
+
+            <option v-for="service in services" :key="service.id" :value="service.id">
+              {{ service.name }}
+            </option>
+
+          </select>
+
+          <small v-if="errors.service_id" class="error">
+            {{ errors.service_id[0] }}
+          </small>
+
         </div>
 
         <!-- Número documento -->
@@ -85,6 +102,18 @@
           <input type="text" v-model="form.address" />
         </div>
 
+        <!-- Ciudad -->
+        <div class="form-group">
+          <label>Ciudad *</label>
+          <select v-model="form.city_id">
+            <option value="" disabled>Selecciona una ciudad</option>
+            <option v-for="city in cities" :key="city.id" :value="city.id">
+              {{ city.name }} — {{ city.department }}
+            </option>
+          </select>
+          <small v-if="errors.city_id" class="error">{{ errors.city_id[0] }}</small>
+        </div>
+
       </div>
 
       <!-- Bio -->
@@ -118,6 +147,17 @@ const message = ref(null)
 const errors = ref({})
 const photoPreview = ref(null)
 
+const services = ref([])
+const allServices = ref([])
+
+const cities = ref([])
+
+const loadCities = async () => {
+  const response = await api.get("/cities")
+  cities.value = response.data
+}
+
+
 const existingFiles = ref({
   identity_card: null,
   professional_card: null,
@@ -126,6 +166,7 @@ const existingFiles = ref({
 
 const form = ref({
   category_id: "",
+  service_id: "",
   document_number: "",
   identity_card: null,
   professional_card: null,
@@ -133,7 +174,8 @@ const form = ref({
   photo: null,
   phone: "",
   bio: "",
-  address: ""
+  address: "",
+  city_id: "",
 })
 
 const handleFile = (event, field) => {
@@ -146,10 +188,22 @@ const handleFile = (event, field) => {
 }
 
 const loadCategories = async () => {
-  const response = await categoryService.getAll()
+  const response = await categoryService.getAllProfesional()
   categories.value = response.data
 }
 
+const loadServices = async () => {
+  const response = await api.get("/services")
+  allServices.value = response.data
+}
+
+const filterServices = () => {
+
+  services.value = allServices.value.filter(
+    s => Number(s.category_id) === Number(form.value.category_id)
+  )
+
+}
 /* ===============================
    🔥 NUEVO: CARGAR PERFIL SI EXISTE
 ================================== */
@@ -165,8 +219,12 @@ const loadProfile = async () => {
       form.value.phone = professional.phone
       form.value.bio = professional.bio
       form.value.address = professional.address
+      form.value.category_id = professional.category_id
+      form.value.service_id = professional.service_id
+      form.value.city_id = professional.city_id
+      filterServices()
 
-      const baseURL = import.meta.env.VITE_API_URL.replace('/api','') + '/storage/'
+      const baseURL = import.meta.env.VITE_API_URL.replace('/api', '') + '/storage/'
 
       // 🔥 FOTO
       if (professional.photo) {
@@ -220,12 +278,13 @@ const saveProfile = async () => {
 
 onMounted(async () => {
   await loadCategories()
-  await loadProfile() // 👈 carga datos si existen
+  await loadServices()   // 👈 debe terminar ANTES de loadProfile
+  await loadCities()
+  await loadProfile()    // 👈 aquí ya filterServices() funciona bien
 })
 </script>
 
 <style scoped>
-
 /* =========================
    CONTENEDOR GENERAL
 ========================= */
@@ -447,5 +506,4 @@ textarea {
 .file-indicator a:hover {
   text-decoration: underline;
 }
-
 </style>
