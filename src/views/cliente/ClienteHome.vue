@@ -7,7 +7,8 @@
     <div class="section">
       <h2 class="section-title">Categorías</h2>
       <div class="categories-grid">
-        <div v-for="cat in categories" :key="cat.id" class="category-card" @click="selectCategory(cat)">
+        <div v-for="cat in categories" :key="cat.id" class="category-card"
+          :class="{ active: selectedCategory?.id === cat.id }" @click="selectCategory(cat)">
           <div class="category-icon">🛠️</div>
           <div class="category-name">{{ cat.name }}</div>
         </div>
@@ -34,22 +35,6 @@
     </div>
 
     <!-- ====================== -->
-    <!-- MAPA POST-SOLICITUD -->
-    <!-- ====================== -->
-    <div v-if="showMap && activeRequest" class="section">
-      <div class="map-header">
-        <h2 class="section-title">Buscando profesional</h2>
-        <button class="btn-cancel-map" @click="cancelSearch">✕ Cancelar búsqueda</button>
-      </div>
-      <ServiceRequestMap
-        :requestId="activeRequest.id"
-        :cityId="activeRequest.city_id"
-        :serviceId="activeRequest.service_id"
-        @accepted="onAccepted"
-      />
-    </div>
-
-    <!-- ====================== -->
     <!-- MODAL SOLICITUD -->
     <!-- ====================== -->
     <div v-if="showRequestModal" class="modal-overlay">
@@ -57,9 +42,24 @@
 
         <h3>Solicitar {{ selectedService?.name }}</h3>
 
-        <textarea v-model="form.description" placeholder="Describe el problema o lo que necesitas"></textarea>
+        <textarea v-model="form.description" placeholder="Describe lo que necesitas"></textarea>
 
-        <input v-model="form.address" placeholder="Dirección" />
+        <!-- SOLO SI ES CAPACITACION -->
+        <div v-if="selectedCategory?.name === 'Capacitación'" class="people-box">
+
+          <label class="input-label">👥 Número de personas a capacitar</label>
+
+          <input type="number" v-model="form.people_count" min="1" placeholder="Ej: 10 personas" />
+
+          <small class="hint">
+            El costo se calcula automáticamente según la cantidad de personas
+          </small>
+
+        </div>
+
+        <input v-model="form.address" placeholder="Dirección exacta (calle, número, zona)" />
+
+        <input v-model="form.reference" placeholder="Referencia (ej: frente a colegio, edificio azul)" />
 
         <select v-model="form.city_id">
           <option value="" disabled>Selecciona una ciudad</option>
@@ -69,19 +69,32 @@
         </select>
 
         <input type="date" v-model="form.service_date" />
-
         <input type="time" v-model="form.service_time" />
 
-        <input type="number" v-model="form.budget" placeholder="Presupuesto" />
+        <!-- PRECIO DINÁMICO -->
+        <div class="price-box">
 
-        <div v-if="budgetError" class="error-text">
-          El presupuesto mínimo para este servicio es ${{ selectedService?.price }}
+          <div>
+            Precio por persona:
+            <strong>${{ selectedService?.price }}</strong>
+          </div>
+
+          <div>
+            Tu precio por persona:
+            <strong>${{ form.budget }}</strong>
+          </div>
+
+          <div>
+            Personas:
+            <strong>{{ form.people_count || 1 }}</strong>
+          </div>
+
+          <div class="total-price">
+            Total a pagar:
+            <strong>${{ totalPrice }}</strong>
+          </div>
+
         </div>
-
-        <div class="price-info">
-          Precio promedio del servicio: <strong>${{ selectedService?.price }}</strong>
-        </div>
-
         <div class="modal-actions">
           <button class="btn-primary" @click="sendRequest" :disabled="budgetError || sending">
             {{ sending ? "Enviando..." : "Enviar solicitud" }}
@@ -99,29 +112,41 @@
 import { ref, onMounted, computed } from "vue"
 import api from "@/services/api"
 import categoryService from "@/services/categoryService"
-import ServiceRequestMap from "./ServiceRequestMap.vue"
 
 /* ======================= */
 /* STATES                  */
 /* ======================= */
-const categories      = ref([])
-const services        = ref([])
-const allServices     = ref([])
-const cities          = ref([])
+const categories = ref([])
+const services = ref([])
+const allServices = ref([])
+const cities = ref([])
 const selectedCategory = ref(null)
-const selectedService  = ref(null)
+const selectedService = ref(null)
 const showRequestModal = ref(false)
-const showMap          = ref(false)
-const activeRequest    = ref(null)
-const sending          = ref(false)
+const showMap = ref(false)
+const activeRequest = ref(null)
+const sending = ref(false)
 
 const form = ref({
-  description:  "",
-  address:      "",
-  city_id:      "",
+  description: "",
+  address: "",
+  reference: "",
+  city_id: "",
   service_date: "",
   service_time: "",
-  budget:       ""
+  budget: "",
+  people_count: 1
+})
+
+const totalPrice = computed(() => {
+  if (!selectedService.value) return 0
+
+  const people = parseInt(form.value.people_count || 1)
+  const price = parseFloat(form.value.budget || 0)
+
+  if (!people || !price) return 0
+
+  return people * price
 })
 
 const budgetError = computed(() => {
@@ -192,33 +217,42 @@ const sendRequest = async () => {
     return
   }
 
+  if (selectedCategory.value.name === 'CAPACITACIÓN') {
+    if (!form.value.people_count || form.value.people_count <= 0) {
+      alert("Debes ingresar la cantidad de personas a capacitar")
+      return
+    }
+  }
+
   try {
     sending.value = true
 
     const res = await api.post("/client/service-request", {
-      category_id:  selectedCategory.value.id,
-      service_id:   selectedService.value.id,
-      description:  form.value.description,
-      address:      form.value.address,
-      city_id:      form.value.city_id,
+      category_id: selectedCategory.value.id,
+      service_id: selectedService.value.id,
+      description: form.value.description,
+      address: form.value.address,
+      reference: form.value.reference,
+      city_id: form.value.city_id,
       service_date: form.value.service_date,
       service_time: form.value.service_time,
-      budget:       form.value.budget
+      people_count: form.value.people_count,
+      budget: totalPrice.value
     })
 
     // Guardar solicitud y mostrar mapa
     activeRequest.value = res.data.data
     showRequestModal.value = false
-    showMap.value = true
+    //showMap.value = true
 
     // Reset form
     form.value = {
-      description:  "",
-      address:      "",
-      city_id:      "",
+      description: "",
+      address: "",
+      city_id: "",
       service_date: "",
       service_time: "",
-      budget:       ""
+      budget: ""
     }
 
   } catch (error) {
@@ -303,26 +337,44 @@ onMounted(() => {
   gap: 15px;
 }
 
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 14px;
+}
+
 .category-card {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 20px;
+  background: white;
+  border-radius: 14px;
+  padding: 16px;
   text-align: center;
   cursor: pointer;
-  transition: .3s;
+  transition: all .25s ease;
+  border: 1.5px solid #e2e8f0;
+  position: relative;
 }
 
 .category-card:hover {
-  background: #2563eb;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-color: #2563eb;
+}
+
+.category-card.active {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: white;
+  border-color: transparent;
 }
 
 .category-icon {
-  font-size: 30px;
-  margin-bottom: 8px;
+  font-size: 26px;
+  margin-bottom: 6px;
 }
 
-.category-name { font-weight: 700; }
+.category-name {
+  font-weight: 700;
+  font-size: 13px;
+}
 
 /* SERVICIOS */
 .services-grid {
@@ -331,25 +383,69 @@ onMounted(() => {
   gap: 20px;
 }
 
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
 .service-card {
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 20px;
+  background: white;
+  border-radius: 16px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  border: 1.5px solid #e2e8f0;
+  transition: all .25s ease;
+  position: relative;
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  border-color: #2563eb;
+}
+
+.service-card h3 {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.service-card p {
+  font-size: 13px;
+  color: #64748b;
 }
 
 .service-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 15px;
+  margin-top: 14px;
 }
 
 .service-price {
+  font-size: 18px;
   font-weight: 800;
-  color: #2563eb;
+  color: #16a34a;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
 .btn-primary {
@@ -372,8 +468,10 @@ onMounted(() => {
 /* MODAL */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
@@ -402,7 +500,9 @@ onMounted(() => {
   width: 100%;
 }
 
-.modal textarea { resize: none; }
+.modal textarea {
+  resize: none;
+}
 
 .modal-actions {
   display: flex;
@@ -423,12 +523,74 @@ onMounted(() => {
 
 /* RESPONSIVE */
 @media(max-width:1100px) {
-  .categories-grid { grid-template-columns: repeat(3, 1fr); }
-  .services-grid   { grid-template-columns: repeat(2, 1fr); }
+  .categories-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .services-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media(max-width:600px) {
-  .categories-grid { grid-template-columns: repeat(2, 1fr); }
-  .services-grid   { grid-template-columns: 1fr; }
+  .categories-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.price-box {
+  background: #f1f5f9;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.modal h3 {
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.modal input,
+.modal textarea,
+.modal select {
+  border: 1px solid #e2e8f0;
+  transition: .2s;
+}
+
+.modal input:focus,
+.modal textarea:focus,
+.modal select:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+.people-box {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.input-label {
+  font-size: 13px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.hint {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.total-price {
+  margin-top: 5px;
+  font-size: 16px;
+  color: #16a34a;
 }
 </style>

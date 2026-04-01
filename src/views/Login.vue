@@ -10,20 +10,34 @@
     <div class="login-container">
       <!-- Logo Header -->
       <div class="login-header">
-        <div class="brand">
-          <span class="brand-icon">⚡</span>
-          <span class="brand-name">IServices</span>
+        <div class="logo-wrap">
+          <img src="/images/logo-services-sin-fondo.png" alt="e-service" class="logo-img" />
         </div>
-        <p class="tagline">Conecta. Contrata. Crece.</p>
+        <p class="tagline">Profesionales a tu alcance</p>
       </div>
 
       <!-- Login Card -->
       <div class="login-card">
-        <div class="card-glow"></div>
+        <div class="card-top-bar"></div>
 
-        <h1 class="login-title">
-          {{ isLogin ? 'Bienvenido de nuevo' : 'Crear cuenta' }}
-        </h1>
+        <!-- Tabs Login / Registro -->
+        <div class="auth-tabs">
+          <button
+            type="button"
+            :class="['auth-tab', { active: isLogin }]"
+            @click="isLogin = true"
+          >
+            Iniciar sesión
+          </button>
+          <button
+            type="button"
+            :class="['auth-tab', { active: !isLogin }]"
+            @click="isLogin = false"
+          >
+            Crear cuenta
+          </button>
+        </div>
+
         <p class="login-subtitle">
           {{
             isLogin
@@ -40,7 +54,7 @@
             @click="selectedRole = role.value"
             :class="['role-option', { active: selectedRole === role.value }]"
           >
-            <span class="role-icon">{{ role.icon }}</span>
+            <div class="role-icon-circle">{{ role.icon }}</div>
             <div class="role-info">
               <div class="role-name">{{ role.name }}</div>
               <div class="role-desc">{{ role.desc }}</div>
@@ -127,21 +141,13 @@
 
         <div class="social-buttons">
           <button class="social-btn">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
+            <svg viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            Google
+            Continuar con Google
           </button>
         </div>
 
@@ -171,8 +177,8 @@ const isLogin = ref(true);
 const showPassword = ref(false);
 const rememberMe = ref(false);
 const selectedRole = ref('client');
-const isLoading = ref(false);      // 👈 nuevo
-const errorMessage = ref('');      // 👈 nuevo
+const isLoading = ref(false);
+const errorMessage = ref('');
 
 const formData = ref({
   name: '',
@@ -197,7 +203,7 @@ const roles = [
 
 const handleSubmit = async () => {
   isLoading.value = true;
-  errorMessage.value = '';          // 👈 limpiar error anterior
+  errorMessage.value = '';
 
   try {
     let result;
@@ -217,11 +223,9 @@ const handleSubmit = async () => {
       );
     }
 
-    // 👈 si el store devuelve error, mostrarlo
     if (!result.success) {
       errorMessage.value = result.error;
     }
-
   } finally {
     isLoading.value = false;
   }
@@ -229,6 +233,14 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+/* ===================================================
+   PALETA EXTRAÍDA DEL LOGO e-service
+   Cian:    #7ec8f5
+   Violeta: #c084f5
+   Rosa:    #f472b6
+   Fondo:   #0d1b2e → #0f2645 → #1a1040
+=================================================== */
+
 .login-page {
   min-height: 100vh;
   display: flex;
@@ -240,10 +252,11 @@ const handleSubmit = async () => {
   font-family: 'Outfit', -apple-system, sans-serif;
 }
 
+/* === FONDO === */
 .login-background {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  background: linear-gradient(135deg, #0d1b2e 0%, #0f2645 50%, #1a1040 100%);
   z-index: 0;
 }
 
@@ -251,14 +264,14 @@ const handleSubmit = async () => {
   position: absolute;
   border-radius: 50%;
   filter: blur(140px);
-  opacity: 0.4;
-  animation: orbFloat 25s infinite ease-in-out;
+  opacity: 0.35;
+  animation: orbFloat 22s infinite ease-in-out;
 }
 
 .orb-1 {
   width: 600px;
   height: 600px;
-  background: #3b82f6;
+  background: #7ec8f5;
   top: -200px;
   right: -100px;
 }
@@ -266,20 +279,20 @@ const handleSubmit = async () => {
 .orb-2 {
   width: 500px;
   height: 500px;
-  background: #8b5cf6;
+  background: #c084f5;
   bottom: -150px;
   left: -100px;
-  animation-delay: -10s;
+  animation-delay: -9s;
 }
 
 .orb-3 {
-  width: 400px;
-  height: 400px;
-  background: #ec4899;
+  width: 420px;
+  height: 420px;
+  background: #f472b6;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  animation-delay: -5s;
+  animation-delay: -4s;
 }
 
 @keyframes orbFloat {
@@ -288,140 +301,161 @@ const handleSubmit = async () => {
     transform: translate(0, 0) scale(1);
   }
   33% {
-    transform: translate(80px, -100px) scale(1.1);
+    transform: translate(70px, -90px) scale(1.08);
   }
   66% {
-    transform: translate(-60px, 80px) scale(0.9);
+    transform: translate(-55px, 75px) scale(0.93);
   }
 }
 
 .bg-grid {
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(
-      rgba(255, 255, 255, 0.03) 1px,
-      transparent 1px
-    ),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
+  background-image:
+    linear-gradient(rgba(126, 200, 245, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(126, 200, 245, 0.04) 1px, transparent 1px);
+  background-size: 55px 55px;
 }
 
+/* === CONTAINER === */
 .login-container {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 480px;
+  max-width: 470px;
 }
 
+/* === HEADER / LOGO === */
 .login-header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 36px;
 }
 
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+.logo-wrap {
+  display: inline-block;
+  margin-bottom: 14px;
 }
 
-.brand-icon {
-  font-size: 48px;
-  filter: drop-shadow(0 8px 20px rgba(59, 130, 246, 0.6));
-}
-
-.brand-name {
-  font-size: 36px;
-  font-weight: 900;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -1px;
+.logo-img {
+  width: 200px;
+  height: auto;
+  filter: drop-shadow(0 6px 28px rgba(126, 200, 245, 0.55));
 }
 
 .tagline {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 15px;
+  color: rgba(126, 200, 245, 0.75);
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 2px;
+  letter-spacing: 2.5px;
   text-transform: uppercase;
 }
 
+/* === CARD === */
 .login-card {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(40px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 32px;
-  padding: 48px 40px;
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(40px) saturate(170%);
+  border: 1px solid rgba(126, 200, 245, 0.18);
+  border-radius: 28px;
+  padding: 44px 40px;
   position: relative;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: border-color 0.3s;
 }
 
-.card-glow {
+.login-card:hover {
+  border-color: rgba(126, 200, 245, 0.32);
+}
+
+/* Barra decorativa superior con gradiente del logo */
+.card-top-bar {
   position: absolute;
-  inset: -2px;
-  background: linear-gradient(
-    135deg,
-    rgba(59, 130, 246, 0.3),
-    rgba(139, 92, 246, 0.3)
-  );
-  border-radius: 32px;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.3s;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, #f472b6, #c084f5, #7ec8f5);
+  opacity: 0.9;
 }
 
-.login-card:hover .card-glow {
-  opacity: 1;
+/* === TABS === */
+.auth-tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 24px;
 }
 
-.login-title {
-  font-size: 32px;
-  font-weight: 900;
-  color: white;
-  margin-bottom: 8px;
-  letter-spacing: -0.5px;
+.auth-tab {
+  flex: 1;
+  padding: 11px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+  font-family: inherit;
+}
+
+.auth-tab.active {
+  background: linear-gradient(135deg, #7ec8f5, #c084f5);
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(126, 200, 245, 0.35);
 }
 
 .login-subtitle {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 15px;
-  margin-bottom: 32px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  margin-bottom: 28px;
   line-height: 1.5;
 }
 
+/* === ROLE SELECTOR === */
 .role-selector {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 32px;
+  gap: 10px;
+  margin-bottom: 26px;
 }
 
 .role-option {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
+  gap: 14px;
+  padding: 14px 16px;
   background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.25s;
 }
 
 .role-option:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.09);
 }
 
 .role-option.active {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: #3b82f6;
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  background: rgba(126, 200, 245, 0.12);
+  border-color: #7ec8f5;
+  box-shadow: 0 0 18px rgba(126, 200, 245, 0.2);
 }
 
-.role-icon {
-  font-size: 32px;
+.role-icon-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7ec8f5, #c084f5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
   flex-shrink: 0;
 }
 
@@ -432,34 +466,35 @@ const handleSubmit = async () => {
 .role-name {
   color: white;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 15px;
   margin-bottom: 2px;
 }
 
 .role-desc {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
 }
 
 .role-check {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: linear-gradient(135deg, #7ec8f5, #c084f5);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.25s;
 }
 
 .role-option.active .role-check {
   opacity: 1;
 }
 
+/* === FORM === */
 .login-form {
   display: flex;
   flex-direction: column;
@@ -469,14 +504,14 @@ const handleSubmit = async () => {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .form-label {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
   font-weight: 600;
-  padding-left: 4px;
+  padding-left: 3px;
 }
 
 .input-wrapper {
@@ -487,44 +522,45 @@ const handleSubmit = async () => {
 
 .input-icon {
   position: absolute;
-  left: 18px;
-  font-size: 18px;
+  left: 16px;
+  font-size: 17px;
   pointer-events: none;
 }
 
 .form-input {
   width: 100%;
-  padding: 16px 20px 16px 52px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
+  padding: 15px 18px 15px 50px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 13px;
   color: white;
   font-size: 15px;
   font-weight: 500;
-  transition: all 0.3s;
+  transition: all 0.25s;
   outline: none;
+  font-family: inherit;
 }
 
 .form-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.28);
 }
 
 .form-input:focus {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+  background: rgba(126, 200, 245, 0.1);
+  border-color: #7ec8f5;
+  box-shadow: 0 0 0 3px rgba(126, 200, 245, 0.15);
 }
 
 .toggle-password {
   position: absolute;
-  right: 16px;
+  right: 14px;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 17px;
   padding: 4px;
-  opacity: 0.6;
-  transition: opacity 0.3s;
+  opacity: 0.55;
+  transition: opacity 0.2s;
 }
 
 .toggle-password:hover {
@@ -535,73 +571,98 @@ const handleSubmit = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: -8px;
+  margin-top: -6px;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 13px;
   cursor: pointer;
 }
 
 .checkbox-label input {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
+  accent-color: #7ec8f5;
 }
 
 .forgot-link {
-  color: #3b82f6;
-  font-size: 14px;
+  color: #7ec8f5;
+  font-size: 13px;
   font-weight: 600;
   text-decoration: none;
-  transition: color 0.3s;
+  transition: color 0.25s;
 }
 
 .forgot-link:hover {
-  color: #60a5fa;
+  color: #c084f5;
 }
 
+/* === ERROR === */
+.error-message {
+  background: rgba(244, 114, 182, 0.12);
+  border: 1px solid rgba(244, 114, 182, 0.35);
+  color: #fca5c0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* === SUBMIT BTN === */
 .submit-btn {
   width: 100%;
-  padding: 18px 32px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  padding: 17px 32px;
+  background: linear-gradient(135deg, #7ec8f5 0%, #c084f5 55%, #f472b6 100%);
   border: none;
-  border-radius: 14px;
+  border-radius: 13px;
   color: white;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  transition: all 0.3s;
-  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
-  margin-top: 8px;
+  gap: 10px;
+  transition: all 0.25s;
+  box-shadow: 0 8px 28px rgba(126, 200, 245, 0.35);
+  margin-top: 6px;
+  font-family: inherit;
+  letter-spacing: 0.2px;
 }
 
 .submit-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 14px 38px rgba(126, 200, 245, 0.45);
+  filter: brightness(1.08);
+}
+
+.submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
 }
 
 .btn-arrow {
-  font-size: 20px;
-  transition: transform 0.3s;
+  font-size: 18px;
+  transition: transform 0.25s;
 }
 
 .submit-btn:hover .btn-arrow {
   transform: translateX(4px);
 }
 
+/* === DIVIDER === */
 .social-divider {
   position: relative;
   text-align: center;
-  margin: 32px 0 24px;
+  margin: 30px 0 22px;
 }
 
 .social-divider::before {
@@ -616,15 +677,16 @@ const handleSubmit = async () => {
 
 .social-divider span {
   position: relative;
-  background: rgba(255, 255, 255, 0.08);
-  padding: 8px 20px;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 13px;
+  background: rgba(126, 200, 245, 0.08);
+  padding: 7px 20px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
   font-weight: 600;
   backdrop-filter: blur(10px);
   border-radius: 20px;
 }
 
+/* === SOCIAL BUTTONS === */
 .social-buttons {
   display: grid;
   gap: 12px;
@@ -636,110 +698,73 @@ const handleSubmit = async () => {
   justify-content: center;
   gap: 10px;
   padding: 14px 20px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 13px;
   color: white;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.25s;
+  font-family: inherit;
 }
 
 .social-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(126, 200, 245, 0.3);
   transform: translateY(-2px);
 }
 
 .social-btn svg {
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
 }
 
+/* === TOGGLE MODE === */
 .toggle-mode {
   text-align: center;
-  margin-top: 28px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 14px;
+  margin-top: 26px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
 }
 
 .toggle-link {
-  color: #3b82f6;
+  background: linear-gradient(90deg, #7ec8f5, #c084f5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  transition: color 0.3s;
 }
 
 .toggle-link:hover {
-  color: #60a5fa;
   text-decoration: underline;
 }
 
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 40px;
-}
-
-.feature-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-}
-
-.feature-icon {
-  font-size: 24px;
-}
-
-.feature-text {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-}
-
-@media (max-width: 768px) {
+/* === RESPONSIVE === */
+@media (max-width: 520px) {
   .login-card {
-    padding: 36px 28px;
+    padding: 36px 24px;
   }
 
-  .login-title {
-    font-size: 28px;
+  .logo-img {
+    width: 165px;
   }
 
-  .features-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .social-buttons {
-    grid-template-columns: 1fr;
+  .auth-tab {
+    font-size: 13px;
+    padding: 10px 8px;
   }
 }
 
-.error-message {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-}
+@media (max-width: 380px) {
+  .login-card {
+    padding: 30px 18px;
+  }
 
-.submit-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
+  .logo-img {
+    width: 140px;
+  }
 }
-
 </style>

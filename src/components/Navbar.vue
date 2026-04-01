@@ -4,8 +4,7 @@
     <div class="container">
       <div class="navbar-content">
         <a href="/" class="logo">
-          <span class="logo-icon">⚡</span>
-          ServiceHub
+          <img src="/images/logo-services-sin-fondo.png" alt="logo" class="logo-img" />
         </a>
         <div class="nav-links">
           <a href="#services">Servicios</a>
@@ -33,9 +32,7 @@
           <a href="#contact" @click="closeMobileMenu">Contacto</a>
           <div class="mobile-menu-actions">
             <a href="/login" class="mobile-login">Iniciar Sesión</a>
-            <a href="/login?register=true" class="mobile-register"
-              >Registrarse</a
-            >
+            <a href="/login?register=true" class="mobile-register">Registrarse</a>
           </div>
         </div>
       </transition>
@@ -82,31 +79,20 @@ const closeMobileMenu = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 0;
+  padding: 24px 0;
   max-width: 100%;
 }
 
-.logo {
-  font-size: 26px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  text-decoration: none;
-  transition: transform 0.3s;
-}
-
-.logo:hover {
-  transform: scale(1.02);
-}
 
 .logo-icon {
   font-size: 28px;
   filter: drop-shadow(0 2px 8px rgba(37, 99, 235, 0.3));
+}
+
+@media (max-width: 768px) {
+  .logo-img {
+    height: 30px;
+  }
 }
 
 .nav-links {
@@ -288,6 +274,27 @@ const closeMobileMenu = () => {
   transform: translateY(-10px);
 }
 
+.logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.logo-img {
+  height: 100px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  /* Si la imagen tiene fondo claro y el navbar es blanco, esto la resalta */
+  filter: drop-shadow(0 2px 8px rgba(37, 99, 235, 0.15));
+}
+
+@media (max-width: 768px) {
+  .logo-img {
+    height: 100px;
+  }
+}
+
 @media (max-width: 1024px) {
   .nav-links {
     gap: 24px;
@@ -301,10 +308,6 @@ const closeMobileMenu = () => {
 @media (max-width: 768px) {
   .navbar-content {
     padding: 16px 0;
-  }
-
-  .logo {
-    font-size: 22px;
   }
 
   .logo-icon {

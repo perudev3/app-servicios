@@ -39,52 +39,6 @@
 
   <ProfessionalRequests />
 
-  <!-- SOLICITUDES -->
-  <div class="section">
-
-    <div class="section-header">
-      <h2>📩 Solicitudes de Trabajo</h2>
-    </div>
-
-    <div v-if="jobRequests.length === 0" class="empty-state">
-      No tienes solicitudes pendientes.
-    </div>
-
-    <div class="jobs-grid">
-
-      <div
-        v-for="job in jobRequests"
-        :key="job.id"
-        class="job-card"
-      >
-
-        <div class="job-header">
-          <h3>{{ job.title }}</h3>
-          <span class="job-price">${{ job.price }}</span>
-        </div>
-
-        <p class="job-description">
-          {{ job.description }}
-        </p>
-
-        <div class="job-footer">
-
-          <span class="job-client">
-            👤 {{ job.client }}
-          </span>
-
-          <div class="job-actions">
-            <button class="btn accept">Aceptar</button>
-            <button class="btn reject">Rechazar</button>
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-  </div>
-
   <!-- TRABAJOS ACTIVOS -->
   <div class="section">
 
@@ -430,5 +384,4 @@ font-size:18px;
 }
 
 }
-
 </style>

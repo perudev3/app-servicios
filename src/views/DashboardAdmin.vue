@@ -8,8 +8,9 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="brand">
-          <span class="brand-icon">⚡</span>
-          <span class="brand-name">ServiceHub</span>
+          <a href="/" class="logo">
+            <img src="/images/logo-services-sin-fondo.png" alt="logo" class="logo-img" />
+          </a>
         </div>
         <div class="admin-badge-header">
           <span>⚙️</span>
@@ -55,8 +56,9 @@
       <div class="mobile-topbar">
         <button class="hamburger-btn" @click="sidebarOpen = true">☰</button>
         <div class="mobile-brand">
-          <span>⚡</span>
-          <span>ServiceHub</span>
+          <a href="/" class="logo">
+            <img src="/images/logo-services-sin-fondo.png" alt="logo" class="logo-img" />
+          </a>
         </div>
         <button class="icon-btn small" @click="refreshStats" :disabled="loadingStats">
           <span :class="{ spinning: loadingStats }">🔄</span>
@@ -661,5 +663,20 @@ td     { padding:18px 16px; border-top:1px solid #f1f5f9; font-size:14px; color:
   .main-stat-card     { padding:16px; }
   .stat-value         { font-size:32px; }
   .stat-breakdown     { display:flex; }
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.logo-img {
+  height: 100px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  /* Si la imagen tiene fondo claro y el navbar es blanco, esto la resalta */
+  filter: drop-shadow(0 2px 8px rgba(37, 99, 235, 0.15));
 }
 </style>

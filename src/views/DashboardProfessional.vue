@@ -9,8 +9,9 @@
 
       <div class="sidebar-header">
         <div class="brand">
-          <img src="/images/logo.jpeg" class="brand-logo" />
-          <span class="brand-name">IServices</span>
+          <a href="/" class="logo">
+            <img src="/images/logo-services-sin-fondo.png" alt="logo" class="logo-img" />
+          </a>
         </div>
 
         <div class="pro-badge-header">
@@ -73,8 +74,9 @@
         </button>
 
         <div class="mobile-brand">
-          <img src="/images/logo.jpeg" class="brand-logo-mobile" />
-          <span>IServices</span>
+          <a href="/" class="logo">
+            <img src="/images/logo-services-sin-fondo.png" alt="logo" class="logo-img" />
+          </a>
         </div>
 
       </div>
@@ -356,6 +358,21 @@ const handleLogout = () => {
     padding:0 16px 16px;
   }
 
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.logo-img {
+  height: 100px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  /* Si la imagen tiene fondo claro y el navbar es blanco, esto la resalta */
+  filter: drop-shadow(0 2px 8px rgba(37, 99, 235, 0.15));
 }
 
 </style>
