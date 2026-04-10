@@ -42,12 +42,18 @@ const routes = [
       role: 'client',
       title: 'Dashboard Cliente - IService',
     },
-     children: [
+    children: [
       {
         path: '',
         name: 'ClientelHome',
         component: () => import('@/views/cliente/ClienteHome.vue')
       },
+      {
+        path: 'solicitudes',
+        name: 'MisSolicitudes',
+        component: () => import('@/views/cliente/MisSolicitudes.vue'),
+        meta: { requiresAuth: true, role: 'client' }
+      }
     ]
   },
   //Profesional
@@ -68,6 +74,12 @@ const routes = [
         path: 'profile',
         name: 'ProfileProfesional',
         component: () => import('@/views/profesional/ProfessionalProfile.vue')
+      },
+      {
+        path: 'trabajos',
+        name: 'MisTrabajos',
+        component: () => import('@/views/profesional/MisTrabajos.vue'),
+        meta: { requiresAuth: true, role: 'professional' }
       }
     ]
   },

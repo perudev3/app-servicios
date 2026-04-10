@@ -1,151 +1,345 @@
 <template>
-  <div class="client-dashboard">
+  <div class="client-home">
 
-    <!-- ====================== -->
-    <!-- CATEGORIAS -->
-    <!-- ====================== -->
-    <div class="section">
+    <!-- ======================== -->
+    <!-- HERO GREETING            -->
+    <!-- ======================== -->
+    <div class="hero-greeting">
+      <div class="hero-left">
+        <p class="hero-eyebrow">Hola de nuevo 👋</p>
+        <h1 class="hero-title">¿Qué necesitas<br><span class="hero-accent">hoy?</span></h1>
+        <p class="hero-sub">Selecciona una categoría y encuentra al profesional ideal</p>
+      </div>
+      <div class="hero-right">
+        <div class="hero-stat">
+          <span class="stat-num">{{ categories.length }}</span>
+          <span class="stat-label">Categorías</span>
+        </div>
+        <div class="hero-stat">
+          <span class="stat-num">{{ allServices.length }}</span>
+          <span class="stat-label">Servicios</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== -->
+    <!-- CATEGORÍAS GRID          -->
+    <!-- ======================== -->
+    <div class="section-header">
       <h2 class="section-title">Categorías</h2>
-      <div class="categories-grid">
-        <div v-for="cat in categories" :key="cat.id" class="category-card"
-          :class="{ active: selectedCategory?.id === cat.id }" @click="selectCategory(cat)">
-          <div class="category-icon">🛠️</div>
-          <div class="category-name">{{ cat.name }}</div>
-        </div>
-      </div>
+      <span class="section-count">{{ categories.length }} disponibles</span>
     </div>
 
-    <!-- ====================== -->
-    <!-- SERVICIOS -->
-    <!-- ====================== -->
-    <div class="section" v-if="services.length">
-      <h2 class="section-title">Servicios - {{ selectedCategory?.name }}</h2>
-      <div class="services-grid">
-        <div v-for="service in services" :key="service.id" class="service-card">
-          <div>
-            <h3>{{ service.name }}</h3>
-            <p>{{ service.description || 'Servicio profesional disponible' }}</p>
-          </div>
-          <div class="service-footer">
-            <span class="service-price">${{ service.price }}</span>
-            <button class="btn-primary" @click="requestService(service)">Solicitar</button>
-          </div>
-        </div>
-      </div>
+    <div v-if="loadingCats" class="skeleton-grid">
+      <div v-for="n in 6" :key="n" class="skeleton-cat"></div>
     </div>
 
-    <!-- ====================== -->
-    <!-- MODAL SOLICITUD -->
-    <!-- ====================== -->
-    <div v-if="showRequestModal" class="modal-overlay">
-      <div class="modal">
+    <div v-else class="categories-grid">
+      <button
+        v-for="cat in categories"
+        :key="cat.id"
+        class="category-card"
+        @click="openCategoryModal(cat)"
+      >
+        <div class="cat-icon-wrap">
+          <span class="cat-emoji">{{ catEmoji(cat.name) }}</span>
+        </div>
+        <span class="cat-name">{{ cat.name }}</span>
+        <span class="cat-count">{{ serviceCountFor(cat.id) }} servicios</span>
+        <div class="cat-arrow">→</div>
+      </button>
+    </div>
 
-        <h3>Solicitar {{ selectedService?.name }}</h3>
+    <!-- ======================== -->
+    <!-- MODAL: SERVICIOS         -->
+    <!-- ======================== -->
+    <Transition name="modal-fade">
+      <div v-if="showServicesModal" class="modal-overlay" @click.self="showServicesModal = false">
+        <div class="modal-sheet modal-services">
 
-        <textarea v-model="form.description" placeholder="Describe lo que necesitas"></textarea>
+          <div class="modal-drag-bar"></div>
 
-        <!-- SOLO SI ES CAPACITACION -->
-        <div v-if="selectedCategory?.name === 'Capacitación'" class="people-box">
+          <div class="modal-services-header">
+            <div class="modal-cat-badge">
+              <span>{{ catEmoji(selectedCategory?.name) }}</span>
+            </div>
+            <div>
+              <h3 class="modal-title">{{ selectedCategory?.name }}</h3>
+              <p class="modal-subtitle">{{ filteredServices.length }} servicios disponibles</p>
+            </div>
+            <button class="btn-close-modal" @click="showServicesModal = false">✕</button>
+          </div>
 
-          <label class="input-label">👥 Número de personas a capacitar</label>
+          <div class="services-list">
+            <div
+              v-for="service in filteredServices"
+              :key="service.id"
+              class="service-item"
+              @click="openRequestModal(service)"
+            >
+              <div class="service-item-left">
+                <div class="service-item-icon">⚡</div>
+                <div>
+                  <p class="service-item-name">{{ service.name }}</p>
+                  <p class="service-item-desc">{{ service.description || 'Servicio profesional disponible' }}</p>
+                </div>
+              </div>
+              <div class="service-item-right">
+                <span class="service-item-price">${{ service.price }}</span>
+                <span class="service-item-arrow">›</span>
+              </div>
+            </div>
 
-          <input type="number" v-model="form.people_count" min="1" placeholder="Ej: 10 personas" />
-
-          <small class="hint">
-            El costo se calcula automáticamente según la cantidad de personas
-          </small>
+            <div v-if="filteredServices.length === 0" class="empty-services">
+              <span>😕</span>
+              <p>Sin servicios en esta categoría</p>
+            </div>
+          </div>
 
         </div>
+      </div>
+    </Transition>
 
-        <input v-model="form.address" placeholder="Dirección exacta (calle, número, zona)" />
+    <!-- ======================== -->
+    <!-- MODAL: FORMULARIO        -->
+    <!-- ======================== -->
+    <Transition name="modal-fade">
+      <div v-if="showRequestModal" class="modal-overlay" @click.self="closeRequestModal">
+        <div class="modal-sheet modal-request">
 
-        <input v-model="form.reference" placeholder="Referencia (ej: frente a colegio, edificio azul)" />
+          <div class="modal-drag-bar"></div>
 
-        <select v-model="form.city_id">
-          <option value="" disabled>Selecciona una ciudad</option>
-          <option v-for="city in cities" :key="city.id" :value="city.id">
-            {{ city.name }} — {{ city.department }}
-          </option>
-        </select>
-
-        <input type="date" v-model="form.service_date" />
-        <input type="time" v-model="form.service_time" />
-
-        <!-- PRECIO DINÁMICO -->
-        <div class="price-box">
-
-          <div>
-            Precio por persona:
-            <strong>${{ selectedService?.price }}</strong>
+          <!-- Header -->
+          <div class="modal-request-header">
+            <button class="btn-back" @click="backToServices">← Volver</button>
+            <div class="modal-request-title-wrap">
+              <h3 class="modal-title">{{ selectedService?.name }}</h3>
+              <span class="modal-price-tag">${{ selectedService?.price }}</span>
+            </div>
+            <button class="btn-close-modal" @click="closeRequestModal">✕</button>
           </div>
 
-          <div>
-            Tu precio por persona:
-            <strong>${{ form.budget }}</strong>
+          <!-- Steps indicator -->
+          <div class="steps-bar">
+            <div
+              v-for="(step, i) in steps"
+              :key="i"
+              class="step-dot"
+              :class="{ active: currentStep >= i, done: currentStep > i }"
+            ></div>
+          </div>
+          <p class="step-label">Paso {{ currentStep + 1 }} de {{ steps.length }}: {{ steps[currentStep] }}</p>
+
+          <!-- ---- STEP 0: Descripción ---- -->
+          <div v-if="currentStep === 0" class="step-body">
+            <label class="field-label">¿Qué necesitas exactamente?</label>
+            <textarea
+              v-model="form.description"
+              class="field-textarea"
+              placeholder="Ej: Necesito reparar una llave que gotea en el baño..."
+              rows="4"
+            ></textarea>
+
+            <div v-if="selectedCategory?.name === 'Capacitación'" class="people-field">
+              <label class="field-label">👥 Número de personas</label>
+              <div class="number-stepper">
+                <button class="stepper-btn" @click="form.people_count = Math.max(1, form.people_count - 1)">−</button>
+                <span class="stepper-val">{{ form.people_count }}</span>
+                <button class="stepper-btn" @click="form.people_count++">+</button>
+              </div>
+              <p class="field-hint">El costo se multiplica por cantidad de personas</p>
+            </div>
           </div>
 
-          <div>
-            Personas:
-            <strong>{{ form.people_count || 1 }}</strong>
+          <!-- ---- STEP 1: Ubicación ---- -->
+          <div v-if="currentStep === 1" class="step-body">
+            <label class="field-label">📍 Dirección</label>
+            <input
+              v-model="form.address"
+              class="field-input"
+              placeholder="Calle, número, zona"
+            />
+
+            <label class="field-label">🗺️ Referencia</label>
+            <input
+              v-model="form.reference"
+              class="field-input"
+              placeholder="Ej: frente al parque, edificio azul"
+            />
+
+            <label class="field-label">🏙️ Ciudad</label>
+            <select v-model="form.city_id" class="field-select">
+              <option value="" disabled>Selecciona una ciudad</option>
+              <option v-for="city in cities" :key="city.id" :value="city.id">
+                {{ city.name }} — {{ city.department }}
+              </option>
+            </select>
           </div>
 
-          <div class="total-price">
-            Total a pagar:
+          <!-- ---- STEP 2: Fecha y hora ---- -->
+          <div v-if="currentStep === 2" class="step-body">
+            <label class="field-label">📅 Fecha del servicio</label>
+            <input type="date" v-model="form.service_date" class="field-input" />
+
+            <label class="field-label">⏰ Hora preferida</label>
+            <input type="time" v-model="form.service_time" class="field-input" />
+          </div>
+
+          <!-- ---- STEP 3: Resumen ---- -->
+          <div v-if="currentStep === 3" class="step-body">
+            <div class="summary-card">
+              <div class="summary-row">
+                <span>Servicio</span>
+                <strong>{{ selectedService?.name }}</strong>
+              </div>
+              <div class="summary-row">
+                <span>Descripción</span>
+                <strong>{{ form.description || '—' }}</strong>
+              </div>
+              <div class="summary-row">
+                <span>Dirección</span>
+                <strong>{{ form.address || '—' }}</strong>
+              </div>
+              <div class="summary-row">
+                <span>Fecha</span>
+                <strong>{{ form.service_date }} {{ form.service_time }}</strong>
+              </div>
+              <div v-if="selectedCategory?.name === 'Capacitación'" class="summary-row">
+                <span>Personas</span>
+                <strong>{{ form.people_count }}</strong>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-row total-row">
+                <span>Total a pagar</span>
+                <strong class="total-amount">${{ totalPrice }}</strong>
+              </div>
+            </div>
+
+            <p v-if="budgetError" class="error-msg">
+              ⚠️ El presupuesto mínimo es ${{ selectedService?.price }}
+            </p>
+          </div>
+
+          <!-- Footer navegación -->
+          <div class="modal-request-footer">
+            <button
+              v-if="currentStep > 0"
+              class="btn-prev"
+              @click="currentStep--"
+            >
+              ← Anterior
+            </button>
+
+            <button
+              v-if="currentStep < steps.length - 1"
+              class="btn-next"
+              :disabled="!stepValid"
+              @click="currentStep++"
+            >
+              Siguiente →
+            </button>
+
+            <button
+              v-if="currentStep === steps.length - 1"
+              class="btn-send"
+              :disabled="budgetError || sending"
+              @click="sendRequest"
+            >
+              <span v-if="sending" class="spinner"></span>
+              {{ sending ? 'Enviando...' : '🚀 Enviar solicitud' }}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ======================== -->
+    <!-- MODAL: ÉXITO             -->
+    <!-- ======================== -->
+    <Transition name="modal-fade">
+      <div v-if="showSuccessModal" class="modal-overlay">
+        <div class="modal-success">
+          <div class="success-icon-wrap">
+            <div class="success-icon">✓</div>
+          </div>
+          <h3 class="success-title">¡Solicitud enviada!</h3>
+          <p class="success-sub">
+            Estamos buscando al profesional ideal para ti. Te notificaremos cuando alguien acepte.
+          </p>
+          <div class="success-detail">
+            <span>{{ selectedService?.name }}</span>
             <strong>${{ totalPrice }}</strong>
           </div>
-
-        </div>
-        <div class="modal-actions">
-          <button class="btn-primary" @click="sendRequest" :disabled="budgetError || sending">
-            {{ sending ? "Enviando..." : "Enviar solicitud" }}
+          <button class="btn-success-close" @click="showSuccessModal = false">
+            Entendido 👍
           </button>
-          <button class="btn-cancel" @click="showRequestModal = false">Cancelar</button>
         </div>
-
       </div>
-    </div>
+    </Transition>
+
+    <!-- TOAST -->
+    <Transition name="toast">
+      <div v-if="toast.visible" class="toast" :class="toast.type">
+        {{ toast.message }}
+      </div>
+    </Transition>
 
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue"
-import api from "@/services/api"
-import categoryService from "@/services/categoryService"
+import { ref, computed, onMounted } from 'vue'
+import api from '@/services/api'
+import categoryService from '@/services/categoryService'
 
-/* ======================= */
-/* STATES                  */
-/* ======================= */
-const categories = ref([])
-const services = ref([])
-const allServices = ref([])
-const cities = ref([])
+/* ======================== */
+/* STATE                    */
+/* ======================== */
+const categories      = ref([])
+const allServices     = ref([])
+const cities          = ref([])
+const loadingCats     = ref(true)
+
 const selectedCategory = ref(null)
-const selectedService = ref(null)
-const showRequestModal = ref(false)
-const showMap = ref(false)
-const activeRequest = ref(null)
-const sending = ref(false)
+const selectedService  = ref(null)
+
+const showServicesModal = ref(false)
+const showRequestModal  = ref(false)
+const showSuccessModal  = ref(false)
+
+const currentStep = ref(0)
+const sending     = ref(false)
+
+const steps = ['Descripción', 'Ubicación', 'Fecha y hora', 'Confirmar']
 
 const form = ref({
-  description: "",
-  address: "",
-  reference: "",
-  city_id: "",
-  service_date: "",
-  service_time: "",
-  budget: "",
-  people_count: 1
+  description:  '',
+  address:      '',
+  reference:    '',
+  city_id:      '',
+  service_date: '',
+  service_time: '',
+  budget:       '',
+  people_count: 1,
 })
+
+const toast = ref({ visible: false, message: '', type: '' })
+let toastTimer = null
+
+/* ======================== */
+/* COMPUTED                 */
+/* ======================== */
+const filteredServices = computed(() =>
+  selectedCategory.value
+    ? allServices.value.filter(s => s.category_id === selectedCategory.value.id)
+    : []
+)
 
 const totalPrice = computed(() => {
   if (!selectedService.value) return 0
-
   const people = parseInt(form.value.people_count || 1)
-  const price = parseFloat(form.value.budget || 0)
-
-  if (!people || !price) return 0
-
+  const price  = parseFloat(form.value.budget || selectedService.value.price || 0)
   return people * price
 })
 
@@ -154,132 +348,155 @@ const budgetError = computed(() => {
   return parseFloat(form.value.budget) < parseFloat(selectedService.value?.price || 0)
 })
 
-/* ======================= */
-/* LOADERS                 */
-/* ======================= */
+const stepValid = computed(() => {
+  if (currentStep.value === 0) return form.value.description.trim().length > 0
+  if (currentStep.value === 1) return form.value.address.trim() && form.value.city_id
+  if (currentStep.value === 2) return form.value.service_date && form.value.service_time
+  return true
+})
+
+/* ======================== */
+/* UTILS                    */
+/* ======================== */
+const catEmoji = (name = '') => {
+  const map = {
+    'electricidad': '⚡', 'electric': '⚡',
+    'plomería': '🔧', 'plomeria': '🔧', 'plom': '🔧',
+    'limpieza': '🧹', 'clean': '🧹',
+    'jardinería': '🌿', 'jardin': '🌿',
+    'pintura': '🎨', 'paint': '🎨',
+    'carpintería': '🪚', 'carpint': '🪚',
+    'capacitación': '📚', 'capacitacion': '📚',
+    'seguridad': '🔒',
+    'mudanza': '📦',
+    'tecnología': '💻', 'tecnologia': '💻',
+  }
+  const lower = name.toLowerCase()
+  for (const key in map) {
+    if (lower.includes(key)) return map[key]
+  }
+  return '🛠️'
+}
+
+const serviceCountFor = (catId) =>
+  allServices.value.filter(s => s.category_id === catId).length
+
+const showToast = (message, type = '') => {
+  clearTimeout(toastTimer)
+  toast.value = { visible: true, message, type }
+  toastTimer = setTimeout(() => { toast.value.visible = false }, 3000)
+}
+
+const resetForm = () => {
+  form.value = {
+    description:  '',
+    address:      '',
+    reference:    '',
+    city_id:      '',
+    service_date: '',
+    service_time: '',
+    budget:       '',
+    people_count: 1,
+  }
+  currentStep.value = 0
+}
+
+/* ======================== */
+/* MODALS                   */
+/* ======================== */
+const openCategoryModal = (cat) => {
+  selectedCategory.value  = cat
+  showServicesModal.value = true
+}
+
+const openRequestModal = (service) => {
+  selectedService.value  = service
+  form.value.budget      = service.price
+  showServicesModal.value = false
+  showRequestModal.value  = true
+  currentStep.value       = 0
+}
+
+const backToServices = () => {
+  showRequestModal.value  = false
+  showServicesModal.value = true
+}
+
+const closeRequestModal = () => {
+  showRequestModal.value = false
+  resetForm()
+}
+
+/* ======================== */
+/* LOADERS                  */
+/* ======================== */
 const loadCategories = async () => {
   try {
     const res = await categoryService.getAllProfesional()
     categories.value = res.data
-  } catch (error) {
-    console.error(error)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loadingCats.value = false
   }
 }
 
 const loadServices = async () => {
   try {
-    const res = await api.get("/services")
+    const res = await api.get('/services')
     allServices.value = res.data
-  } catch (error) {
-    console.error(error)
+  } catch (e) {
+    console.error(e)
   }
 }
 
 const loadCities = async () => {
-  const res = await api.get("/cities")
-  cities.value = res.data
+  try {
+    const res = await api.get('/cities')
+    cities.value = res.data
+  } catch (e) {
+    console.error(e)
+  }
 }
 
-/* ======================= */
-/* SELECT CATEGORY         */
-/* ======================= */
-const selectCategory = (cat) => {
-  selectedCategory.value = cat
-  services.value = allServices.value.filter(s => s.category_id === cat.id)
-}
-
-/* ======================= */
-/* OPEN REQUEST MODAL      */
-/* ======================= */
-const requestService = (service) => {
-  selectedService.value = service
-  form.value.budget = service.price
-  showRequestModal.value = true
-}
-
-/* ======================= */
-/* SEND REQUEST            */
-/* ======================= */
+/* ======================== */
+/* SEND                     */
+/* ======================== */
 const sendRequest = async () => {
-
   if (!form.value.city_id) {
-    alert("Selecciona una ciudad")
-    return
+    showToast('Selecciona una ciudad', 'error'); return
   }
-
-  if (!form.value.budget) {
-    alert("Debes ingresar un presupuesto")
-    return
-  }
-
-  if (parseFloat(form.value.budget) < parseFloat(selectedService.value.price)) {
-    alert(`El presupuesto mínimo para este servicio es $${selectedService.value.price}`)
-    return
-  }
-
-  if (selectedCategory.value.name === 'CAPACITACIÓN') {
-    if (!form.value.people_count || form.value.people_count <= 0) {
-      alert("Debes ingresar la cantidad de personas a capacitar")
-      return
-    }
+  if (budgetError.value) {
+    showToast(`Presupuesto mínimo: $${selectedService.value.price}`, 'error'); return
   }
 
   try {
     sending.value = true
-
-    const res = await api.post("/client/service-request", {
-      category_id: selectedCategory.value.id,
-      service_id: selectedService.value.id,
-      description: form.value.description,
-      address: form.value.address,
-      reference: form.value.reference,
-      city_id: form.value.city_id,
+    await api.post('/client/service-request', {
+      category_id:  selectedCategory.value.id,
+      service_id:   selectedService.value.id,
+      description:  form.value.description,
+      address:      form.value.address,
+      reference:    form.value.reference,
+      city_id:      form.value.city_id,
       service_date: form.value.service_date,
       service_time: form.value.service_time,
       people_count: form.value.people_count,
-      budget: totalPrice.value
+      budget:       totalPrice.value,
     })
 
-    // Guardar solicitud y mostrar mapa
-    activeRequest.value = res.data.data
-    showRequestModal.value = false
-    //showMap.value = true
+    showRequestModal.value  = false
+    showSuccessModal.value  = true
+    resetForm()
 
-    // Reset form
-    form.value = {
-      description: "",
-      address: "",
-      city_id: "",
-      service_date: "",
-      service_time: "",
-      budget: ""
-    }
-
-  } catch (error) {
-    console.error(error)
-    alert("Error al enviar la solicitud")
+  } catch (e) {
+    console.error(e)
+    showToast('Error al enviar la solicitud', 'error')
   } finally {
     sending.value = false
   }
 }
 
-/* ======================= */
-/* MAP EVENTS              */
-/* ======================= */
-const onAccepted = (professional) => {
-  alert(`✅ ¡${professional.name} aceptó tu solicitud!\n📞 ${professional.phone}`)
-  showMap.value = false
-  activeRequest.value = null
-}
-
-const cancelSearch = () => {
-  showMap.value = false
-  activeRequest.value = null
-}
-
-/* ======================= */
-/* INIT                    */
-/* ======================= */
 onMounted(() => {
   loadCategories()
   loadServices()
@@ -288,309 +505,822 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.client-dashboard {
+/* ======================== */
+/* BASE                     */
+/* ======================== */
+.client-home {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 24px;
+  padding-bottom: 40px;
+  font-family: 'Outfit', -apple-system, sans-serif;
 }
 
-.section {
-  background: white;
-  padding: 25px;
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+/* ======================== */
+/* HERO                     */
+/* ======================== */
+.hero-greeting {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%);
+  border-radius: 20px;
+  padding: 28px 28px 24px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-greeting::before {
+  content: '';
+  position: absolute;
+  top: -30px; right: -30px;
+  width: 160px; height: 160px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+}
+
+.hero-greeting::after {
+  content: '';
+  position: absolute;
+  bottom: -20px; left: 40%;
+  width: 100px; height: 100px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 50%;
+}
+
+.hero-eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.75;
+  margin: 0 0 6px;
+  letter-spacing: 0.3px;
+}
+
+.hero-title {
+  font-size: 32px;
+  font-weight: 900;
+  margin: 0 0 8px;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.hero-accent {
+  color: #93c5fd;
+}
+
+.hero-sub {
+  font-size: 13px;
+  opacity: 0.65;
+  margin: 0;
+}
+
+.hero-right {
+  display: flex;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 12px 18px;
+  backdrop-filter: blur(4px);
+}
+
+.stat-num {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 3px;
+  font-weight: 600;
+}
+
+/* ======================== */
+/* SECTION HEADER           */
+/* ======================== */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .section-title {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 800;
-  margin-bottom: 20px;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.3px;
 }
 
-/* MAP HEADER */
-.map-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0;
-}
-
-.map-header .section-title {
-  margin-bottom: 0;
-}
-
-.btn-cancel-map {
-  background: #fee2e2;
-  color: #991b1b;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
+.section-count {
+  font-size: 12px;
+  color: #94a3b8;
   font-weight: 600;
-  font-size: 13px;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 20px;
 }
 
-/* CATEGORIAS */
-.categories-grid {
+/* ======================== */
+/* SKELETON                 */
+/* ======================== */
+.skeleton-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
 }
 
+.skeleton-cat {
+  height: 110px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ======================== */
+/* CATEGORIES GRID          */
+/* ======================== */
 .categories-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
 }
 
 .category-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   background: white;
-  border-radius: 14px;
-  padding: 16px;
-  text-align: center;
-  cursor: pointer;
-  transition: all .25s ease;
   border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  text-align: left;
   position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  font-family: inherit;
 }
 
 .category-card:hover {
+  border-color: #2563eb;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
   transform: translateY(-3px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-  border-color: #2563eb;
 }
 
-.category-card.active {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: white;
-  border-color: transparent;
-}
-
-.category-icon {
-  font-size: 26px;
-  margin-bottom: 6px;
-}
-
-.category-name {
-  font-weight: 700;
-  font-size: 13px;
-}
-
-/* SERVICIOS */
-.services-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.services-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 18px;
-}
-
-.service-card {
-  background: white;
-  border-radius: 16px;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  border: 1.5px solid #e2e8f0;
-  transition: all .25s ease;
-  position: relative;
-}
-
-.service-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-  border-color: #2563eb;
-}
-
-.service-card h3 {
-  font-size: 15px;
-  font-weight: 800;
-  margin-bottom: 6px;
-}
-
-.service-card p {
-  font-size: 13px;
-  color: #64748b;
-}
-
-.service-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 14px;
-}
-
-.service-price {
-  font-size: 18px;
-  font-weight: 800;
-  color: #16a34a;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: .2s;
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-}
-
-.btn-primary {
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.btn-cancel {
-  background: #e5e7eb;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* MODAL */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+.cat-icon-wrap {
+  width: 44px;
+  height: 44px;
+  background: #eff6ff;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  margin-bottom: 2px;
 }
 
-.modal {
+.cat-emoji { font-size: 22px; }
+
+.cat-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.cat-count {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.cat-arrow {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 14px;
+  color: #cbd5e1;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.category-card:hover .cat-arrow {
+  color: #2563eb;
+  transform: translateX(2px);
+}
+
+/* ======================== */
+/* MODAL BASE               */
+/* ======================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.modal-sheet {
   background: white;
-  padding: 25px;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 24px 24px 0 0;
+  padding: 0 0 32px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-drag-bar {
+  width: 40px;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  margin: 12px auto 0;
+}
+
+.btn-close-modal {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: #64748b;
+  transition: background 0.15s;
+}
+
+.btn-close-modal:hover { background: #e2e8f0; }
+
+/* ======================== */
+/* MODAL SERVICIOS          */
+/* ======================== */
+.modal-services-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.modal-cat-badge {
+  width: 46px;
+  height: 46px;
+  background: #eff6ff;
   border-radius: 14px;
-  width: 350px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 2px;
+}
+
+.modal-subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.services-list {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  gap: 12px;
+}
+
+.service-item:hover {
+  border-color: #2563eb;
+  background: #f8fbff;
+  transform: translateX(2px);
+}
+
+.service-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.service-item-icon {
+  width: 36px;
+  height: 36px;
+  background: #fef3c7;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.service-item-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px;
+}
+
+.service-item-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.service-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.service-item-price {
+  font-size: 16px;
+  font-weight: 900;
+  color: #2563eb;
+}
+
+.service-item-arrow {
+  font-size: 20px;
+  color: #cbd5e1;
+  font-weight: 300;
+}
+
+.empty-services {
+  text-align: center;
+  padding: 32px;
+  color: #94a3b8;
+}
+
+.empty-services span { font-size: 28px; }
+.empty-services p    { font-size: 13px; margin-top: 8px; }
+
+/* ======================== */
+/* MODAL REQUEST            */
+/* ======================== */
+.modal-request { padding-bottom: 0; }
+
+.modal-request-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.modal-request-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.modal-price-tag {
+  font-size: 13px;
+  font-weight: 800;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-top: 2px;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  padding: 6px 0;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+/* Steps bar */
+.steps-bar {
+  display: flex;
+  gap: 6px;
+  padding: 14px 20px 0;
+  justify-content: center;
+}
+
+.step-dot {
+  height: 4px;
+  flex: 1;
+  border-radius: 2px;
+  background: #e2e8f0;
+  transition: background 0.3s;
+}
+
+.step-dot.active  { background: #2563eb; }
+.step-dot.done    { background: #93c5fd; }
+
+.step-label {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  margin: 6px 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Step body */
+.step-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  display: block;
+  margin-bottom: -6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.field-input,
+.field-select {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #0f172a;
+  background: white;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.field-input:focus,
+.field-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.field-textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #0f172a;
+  resize: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.field-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.field-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: -4px 0 0;
+}
+
+/* Stepper personas */
+.people-field {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.number-stepper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stepper-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.stepper-btn:hover { background: #eff6ff; border-color: #2563eb; }
+.stepper-val { font-size: 22px; font-weight: 900; color: #0f172a; min-width: 30px; text-align: center; }
+
+/* Summary */
+.summary-card {
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.modal textarea,
-.modal input,
-.modal select {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  background: white;
-  width: 100%;
-}
-
-.modal textarea {
-  resize: none;
-}
-
-.modal-actions {
+.summary-row {
   display: flex;
   justify-content: space-between;
-  margin-top: 10px;
-}
-
-.error-text {
-  color: #ef4444;
+  align-items: flex-start;
   font-size: 13px;
-  margin-top: -5px;
+  gap: 12px;
 }
 
-.price-info {
+.summary-row span   { color: #64748b; flex-shrink: 0; }
+.summary-row strong { color: #0f172a; text-align: right; font-weight: 700; }
+.summary-divider    { height: 1px; background: #e2e8f0; }
+
+.total-row span   { font-weight: 700; color: #0f172a; font-size: 14px; }
+.total-amount     { font-size: 22px; font-weight: 900; color: #2563eb; letter-spacing: -0.5px; }
+
+.error-msg {
   font-size: 13px;
-  color: #64748b;
-}
-
-/* RESPONSIVE */
-@media(max-width:1100px) {
-  .categories-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .services-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media(max-width:600px) {
-  .categories-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .services-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-.price-box {
-  background: #f1f5f9;
-  padding: 12px;
+  color: #dc2626;
+  font-weight: 600;
+  background: #fef2f2;
+  padding: 10px 14px;
   border-radius: 10px;
+  border: 1px solid #fecaca;
+}
+
+/* Modal footer */
+.modal-request-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px 28px;
+  border-top: 1px solid #f1f5f9;
+  background: white;
+  position: sticky;
+  bottom: 0;
+}
+
+.btn-prev {
+  flex: 1;
+  padding: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  border-radius: 12px;
   font-size: 14px;
-  margin-top: 10px;
-}
-
-.modal h3 {
-  font-weight: 800;
-  color: #1e293b;
-}
-
-.modal input,
-.modal textarea,
-.modal select {
-  border: 1px solid #e2e8f0;
-  transition: .2s;
-}
-
-.modal input:focus,
-.modal textarea:focus,
-.modal select:focus {
-  border-color: #2563eb;
-  outline: none;
-}
-
-.people-box {
-  background: #f8fafc;
-  padding: 12px;
-  border-radius: 10px;
-}
-
-.input-label {
-  font-size: 13px;
   font-weight: 700;
-  display: block;
-  margin-bottom: 5px;
-}
-
-.hint {
-  font-size: 12px;
   color: #64748b;
+  cursor: pointer;
+  font-family: inherit;
 }
 
-.total-price {
-  margin-top: 5px;
-  font-size: 16px;
-  color: #16a34a;
+.btn-next {
+  flex: 2;
+  padding: 12px;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+
+.btn-next:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-send {
+  flex: 2;
+  padding: 13px;
+  background: linear-gradient(135deg, #15803d, #16a34a);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.15s;
+}
+
+.btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ======================== */
+/* MODAL ÉXITO              */
+/* ======================== */
+.modal-success {
+  background: white;
+  width: 90%;
+  max-width: 340px;
+  border-radius: 24px;
+  padding: 32px 24px;
+  text-align: center;
+  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin: auto;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.success-icon-wrap {
+  margin: 0 auto 16px;
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, #15803d, #16a34a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-icon {
+  font-size: 32px;
+  color: white;
+  font-weight: 900;
+}
+
+.success-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.success-sub {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
+.success-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 14px;
+  color: #166534;
+}
+
+.success-detail strong {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.btn-success-close {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ======================== */
+/* MODAL OVERLAY CENTRADO   */
+/* ======================== */
+.modal-success ~ .modal-overlay,
+.modal-overlay:has(.modal-success) {
+  align-items: center;
+}
+
+/* ======================== */
+/* TOAST                    */
+/* ======================== */
+.toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b; color: #fff;
+  padding: 12px 22px; border-radius: 12px;
+  font-size: 13px; font-weight: 600; z-index: 9999;
+  white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+.toast.error { background: #7f1d1d; }
+.toast.success { background: #14532d; }
+
+.toast-enter-active, .toast-leave-active {
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+.toast-enter-from { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.95); }
+.toast-leave-to   { opacity: 0; transform: translateX(-50%) translateY(10px); }
+
+/* ======================== */
+/* MODAL TRANSITIONS        */
+/* ======================== */
+.modal-fade-enter-active { transition: opacity 0.2s ease; }
+.modal-fade-leave-active { transition: opacity 0.15s ease; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+
+.modal-fade-enter-active .modal-sheet,
+.modal-fade-enter-active .modal-success {
+  animation: slideUp 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ======================== */
+/* RESPONSIVE               */
+/* ======================== */
+@media (max-width: 640px) {
+  .hero-greeting { padding: 20px; }
+  .hero-title    { font-size: 26px; }
+  .hero-right    { display: none; }
+
+  .categories-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .modal-sheet { max-height: 92vh; }
+}
+
+@media (min-width: 641px) {
+  .modal-overlay { align-items: center; }
+  .modal-sheet {
+    border-radius: 24px;
+    margin: 20px;
+    max-height: 85vh;
+  }
 }
 </style>

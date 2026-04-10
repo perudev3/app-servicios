@@ -185,13 +185,18 @@ const handleLogout = () => {
 }
 
 const navItems = [
-
   {
-    id:'dashboard',
-    icon:'🏠',
-    label:'Dashboard',
-    route:{ name:'DashboardClient' }
-  }
+    id: 'dashboard',
+    icon: '🏠',
+    label: 'Dashboard',
+    route: { name: 'DashboardClient' }
+  },
+  {
+    id: 'solicitudes',
+    icon: '📋',
+    label: 'Mis Solicitudes',
+    route: { name: 'MisSolicitudes' }
+  },
 ]
 
 </script>
