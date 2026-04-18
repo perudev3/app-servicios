@@ -24,66 +24,7 @@
     </div>
   </div>
 
-  <!-- GANANCIAS -->
-  <div class="earnings-grid">
-
-    <div class="earnings-card main">
-      <div class="earnings-label">Ganancias Este Mes</div>
-      <div class="earnings-amount">$3,280</div>
-      <div class="earnings-change positive">
-        +18.5% vs mes anterior
-      </div>
-    </div>
-
-  </div>
-
   <ProfessionalRequests />
-
-  <!-- TRABAJOS ACTIVOS -->
-  <div class="section">
-
-    <div class="section-header">
-      <h2>🔧 Trabajos en Curso</h2>
-    </div>
-
-    <div v-if="activeJobs.length === 0" class="empty-state">
-      No tienes trabajos activos actualmente.
-    </div>
-
-    <div class="jobs-grid">
-
-      <div
-        v-for="job in activeJobs"
-        :key="job.id"
-        class="job-card active"
-      >
-
-        <div class="job-header">
-          <h3>{{ job.title }}</h3>
-          <span class="job-status">En progreso</span>
-        </div>
-
-        <p class="job-description">
-          {{ job.description }}
-        </p>
-
-        <div class="job-footer">
-
-          <span class="job-client">
-            👤 {{ job.client }}
-          </span>
-
-          <button class="btn complete">
-            Marcar como completado
-          </button>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
 
 </div>
 

@@ -96,98 +96,92 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
 
-const route  = useRoute();
-const router = useRouter();
-
+const route     = useRoute();
+const router    = useRouter();
 const authStore = useAuthStore();
 
-const activeSection = ref('dashboard');
-const sidebarOpen   = ref(false);
-const loadingStats  = ref(false);
-const loadingUsers  = ref(false);
-const apiError      = ref('');
-const activeFilter  = ref('Usuarios');
+// ── Estado ─────────────────────────────────────────────────
+const sidebarOpen  = ref(false);
+const loadingStats = ref(false);
+const loadingUsers = ref(false);
+const apiError     = ref('');
+const stats        = ref({});
+const recentUsers  = ref([]);
 
+// ── Permisos reactivos desde el store ──────────────────────
+const isSuperAdmin = computed(() => authStore.user?.is_super_admin ?? false);
+const hasModule    = (module) => isSuperAdmin.value || (authStore.user?.permissions?.[module] === true);
+
+// ── NavItems filtrados según permisos ──────────────────────
+const allNavItems = [
+  { id: 'dashboard',  icon: '📊', label: 'Dashboard',        module: null,         superAdminOnly: false },
+  { id: 'users',      icon: '👥', label: 'Usuarios',         module: 'users',      superAdminOnly: false },
+  { id: 'categories', icon: '🏷️', label: 'Categorías',      module: 'categories', superAdminOnly: false },
+  { id: 'sub-admins', icon: '🛡️', label: 'Administradores', module: null,         superAdminOnly: true  },
+];
+
+const navItems = computed(() =>
+  allNavItems.filter(item => {
+    if (item.superAdminOnly) return isSuperAdmin.value;
+    if (!item.module)        return true;
+    return hasModule(item.module);
+  })
+);
+
+// ── Sincronizar sección activa con la ruta ─────────────────
 watch(() => route.name, (name) => {
-  const map = {
-    'AdminUsers':         'users',
-    'AdminProfessionals': 'professionals',
-    // agrega más según crees las rutas
-  };
-  if (map[name]) activeSection.value = map[name];
-  else           activeSection.value = 'dashboard';
+  // no se usa activeSection para nada crítico, isActive() usa route.name directamente
 }, { immediate: true });
 
-// Cerrar con Escape
+// ── Cerrar sidebar con Escape ──────────────────────────────
 const onKeydown = (e) => { if (e.key === 'Escape') sidebarOpen.value = false; };
 onMounted(() => window.addEventListener('keydown', onKeydown));
 onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
+// ── Navegación ─────────────────────────────────────────────
+const routeMap = {
+  dashboard:   { name: 'DashboardAdmin' },
+  users:       { name: 'AdminUsers' },
+  categories:  { name: 'AdminCategories' },
+  'sub-admins': { name: 'AdminSubAdmins' },
+};
+
 const navigate = (id) => {
   sidebarOpen.value = false;
-
-  const routeMap = {
-    dashboard: { name: 'DashboardAdmin' },
-    users: { name: 'AdminUsers' },
-    categories: { name: 'AdminCategories' },
-  };
-
-  if (routeMap[id]) {
-    router.push(routeMap[id]);
-  }
+  if (routeMap[id]) router.push(routeMap[id]);
 };
 
-const isActive = (id) => {
+const nameMap = {
+  dashboard:   'DashboardAdmin',
+  users:       'AdminUsers',
+  categories:  'AdminCategories',
+  'sub-admins': 'AdminSubAdmins',
+};
 
-  const map = {
-    dashboard: 'DashboardAdmin',
-    users: 'AdminUsers',
-    categories: 'AdminCategories'
-  }
+const isActive = (id) => route.name === nameMap[id];
 
-  return route.name === map[id]
+// ── Computed de UI ─────────────────────────────────────────
+const roleMap = {
+  admin:        'Super Administrador',
+  client:       'Cliente',
+  professional: 'Profesional',
+};
 
-}
+const roleLabel = computed(() => {
+  // Si tiene adminPermission → es sub-admin
+  const user = authStore.user;
+  if (!user) return '';
+  if (isSuperAdmin.value) return 'Super Administrador';
+  return 'Sub-Administrador';
+});
 
-const roleMap = { admin: 'Super Administrador', client: 'Cliente', professional: 'Profesional' };
-const roleLabel   = computed(() => roleMap[authStore.user?.role] ?? authStore.user?.role ?? '');
 const currentDate = computed(() =>
-  new Date().toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  new Date().toLocaleDateString('es-PE', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  })
 );
 
-
-const revenueChart     = ref([45, 62, 58, 71, 65, 78, 85, 68, 75, 82]);
-const analyticsData    = ref([65, 78, 72, 85, 68, 92, 75, 88, 82, 90, 78, 95, 85, 88]);
-const pendingApprovals = ref([
-  { id: 1, icon: '👨‍🔧', title: 'Nuevo Profesional', description: 'Roberto Silva - Carpintero', time: 'Hace 15 min' },
-  { id: 2, icon: '📋', title: 'Servicio Nuevo',      description: 'Diseño Web Premium',         time: 'Hace 1 hora' },
-  { id: 3, icon: '💳', title: 'Retiro de Fondos',    description: '$450.00 - Laura García',     time: 'Hace 2 horas' },
-]);
-const categoryStats = ref([
-  { id: 1, icon: '🏠', name: 'Hogar & Reparaciones', services: 856,  professionals: 234, revenue: 45200, rating: 4.9, trend:  12.5 },
-  { id: 2, icon: '💻', name: 'Tecnología',            services: 623,  professionals: 189, revenue: 67800, rating: 4.8, trend:  18.3 },
-  { id: 3, icon: '🎨', name: 'Diseño & Creatividad',  services: 445,  professionals: 156, revenue: 38900, rating: 4.7, trend:  -2.1 },
-  { id: 4, icon: '💼', name: 'Negocios',              services: 389,  professionals: 123, revenue: 52100, rating: 4.9, trend:   8.7 },
-]);
-
-const navItems = [
-  { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-  { id: 'users', icon: '👥', label: 'Usuarios' },
-   { id: 'categories', icon: '👥', label: 'Categorias' },
-];
-
-const mobileNavItems = [
-  { id: 'dashboard', icon: '📊', label: 'Inicio' },
-  { id: 'users', icon: '👥', label: 'Usuarios' },
-  { id: 'categories', icon: '👥', label: 'Categorias' },
-];
-
-const getChartLabel = (index) => {
-  const labels = ['1', '5', '10', '15', '20', '25', '30'];
-  const step = Math.floor(analyticsData.value.length / labels.length);
-  return index % step === 0 ? labels[Math.floor(index / step)] : '';
-};
-
+// ── Fetch stats ────────────────────────────────────────────
 const fetchStats = async () => {
   loadingStats.value = true;
   apiError.value = '';
@@ -195,41 +189,36 @@ const fetchStats = async () => {
     const { data } = await api.get('/admin/stats');
     if (data.success) stats.value = { ...stats.value, ...data.stats };
   } catch {
-    stats.value = {
-      totalUsers: 15847, totalClients: 12453, totalProfessionals: 3394,
-      monthlyRevenue: 124590, activeServices: 2845, pendingServices: 456,
-      avgRating: 4.8, pendingProfessionals: 23, contentReports: 8,
-      pendingPayments: 12450, supportTickets: 34,
-    };
+    // fallback silencioso — el dashboard hijo maneja sus propios datos
   } finally {
     loadingStats.value = false;
   }
 };
 
 const fetchRecentUsers = async () => {
+  // Solo cargar si tiene acceso al módulo usuarios
+  if (!hasModule('users')) return;
   loadingUsers.value = true;
   try {
     const { data } = await api.get('/admin/users?per_page=4&sort=created_at');
     if (data.success) recentUsers.value = data.users.data ?? data.users;
   } catch {
-    recentUsers.value = [
-      { id: 1, name: 'María González', role: 'client',       email_verified_at: true },
-      { id: 2, name: 'Juan Pérez',     role: 'professional', email_verified_at: null },
-      { id: 3, name: 'Ana Rodríguez',  role: 'client',       email_verified_at: true },
-      { id: 4, name: 'Carlos Mendoza', role: 'professional', email_verified_at: true },
-    ];
+    recentUsers.value = [];
   } finally {
     loadingUsers.value = false;
   }
 };
 
-const refreshStats   = () => Promise.all([fetchStats(), fetchRecentUsers()]);
-const handleApprove  = (item) => { pendingApprovals.value = pendingApprovals.value.filter(a => a.id !== item.id); };
-const handleReject   = (item) => { pendingApprovals.value = pendingApprovals.value.filter(a => a.id !== item.id); };
-const handleLogout   = () => authStore.logout();
+const refreshStats = () => Promise.all([fetchStats(), fetchRecentUsers()]);
 
+const handleLogout = () => authStore.logout();
+
+// ── Init ───────────────────────────────────────────────────
 onMounted(() => {
-  if (authStore.user?.role !== 'admin') { authStore.logout(); return; }
+  if (authStore.user?.role !== 'admin') {
+    authStore.logout();
+    return;
+  }
   fetchStats();
   fetchRecentUsers();
 });

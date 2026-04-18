@@ -31,14 +31,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async (email, password, selectedRole) => {
     try {
-      const { data } = await api.post('/login', {  // 👈 tu endpoint de Laravel
+      const { data } = await api.post('/login', {
         email,
         password,
         role: selectedRole
       });
 
       if (data.success) {
-        user.value = data.user;
+        user.value = data.user;          // ya incluye is_super_admin y permissions
         token.value = data.token;
         role.value = data.role;
         isAuthenticated.value = true;
@@ -46,7 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('userRole', data.role);
         localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('user', JSON.stringify(data.user)); // se guarda completo
 
         router.push(`/dashboard/${data.role}`);
         return { success: true };
@@ -54,7 +54,6 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error(data.message || 'Login failed');
       }
     } catch (error) {
-      // Captura errores HTTP de Laravel (401, 422, etc.)
       const message = error.response?.data?.message || error.message || 'Error al iniciar sesión';
       console.error('Login error:', message);
       return { success: false, error: message };

@@ -12,7 +12,7 @@
       </div>
       <div class="hero-right">
         <div class="hero-stat">
-          <span class="stat-num">{{ categories.length }}</span>
+          <span class="stat-num">{{ allServices.length }}</span>
           <span class="stat-label">Categorías</span>
         </div>
         <div class="hero-stat">
@@ -35,12 +35,7 @@
     </div>
 
     <div v-else class="categories-grid">
-      <button
-        v-for="cat in categories"
-        :key="cat.id"
-        class="category-card"
-        @click="openCategoryModal(cat)"
-      >
+      <button v-for="cat in categories" :key="cat.id" class="category-card" @click="openCategoryModal(cat)">
         <div class="cat-icon-wrap">
           <span class="cat-emoji">{{ catEmoji(cat.name) }}</span>
         </div>
@@ -71,12 +66,8 @@
           </div>
 
           <div class="services-list">
-            <div
-              v-for="service in filteredServices"
-              :key="service.id"
-              class="service-item"
-              @click="openRequestModal(service)"
-            >
+            <div v-for="service in filteredServices" :key="service.id" class="service-item"
+              @click="openRequestModal(service)">
               <div class="service-item-left">
                 <div class="service-item-icon">⚡</div>
                 <div>
@@ -121,24 +112,16 @@
 
           <!-- Steps indicator -->
           <div class="steps-bar">
-            <div
-              v-for="(step, i) in steps"
-              :key="i"
-              class="step-dot"
-              :class="{ active: currentStep >= i, done: currentStep > i }"
-            ></div>
+            <div v-for="(step, i) in steps" :key="i" class="step-dot"
+              :class="{ active: currentStep >= i, done: currentStep > i }"></div>
           </div>
           <p class="step-label">Paso {{ currentStep + 1 }} de {{ steps.length }}: {{ steps[currentStep] }}</p>
 
           <!-- ---- STEP 0: Descripción ---- -->
           <div v-if="currentStep === 0" class="step-body">
             <label class="field-label">¿Qué necesitas exactamente?</label>
-            <textarea
-              v-model="form.description"
-              class="field-textarea"
-              placeholder="Ej: Necesito reparar una llave que gotea en el baño..."
-              rows="4"
-            ></textarea>
+            <textarea v-model="form.description" class="field-textarea"
+              placeholder="Ej: Necesito reparar una llave que gotea en el baño..." rows="4"></textarea>
 
             <div v-if="selectedCategory?.name === 'Capacitación'" class="people-field">
               <label class="field-label">👥 Número de personas</label>
@@ -149,23 +132,28 @@
               </div>
               <p class="field-hint">El costo se multiplica por cantidad de personas</p>
             </div>
+
+            <div v-if="selectedCategory?.name === 'Capacitación'" class="people-names">
+              <label class="field-label">🧑‍🤝‍🧑 Participantes</label>
+
+              <div class="people-container">
+                <div v-for="(name, index) in form.people_names" :key="index" class="person-card">
+                  <span class="person-index">#{{ index + 1 }}</span>
+
+                  <input v-model="form.people_names[index]" class="person-input-field"
+                    :placeholder="`Nombre de la persona ${index + 1}`" />
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- ---- STEP 1: Ubicación ---- -->
           <div v-if="currentStep === 1" class="step-body">
             <label class="field-label">📍 Dirección</label>
-            <input
-              v-model="form.address"
-              class="field-input"
-              placeholder="Calle, número, zona"
-            />
+            <input v-model="form.address" class="field-input" placeholder="Calle, número, zona" />
 
             <label class="field-label">🗺️ Referencia</label>
-            <input
-              v-model="form.reference"
-              class="field-input"
-              placeholder="Ej: frente al parque, edificio azul"
-            />
+            <input v-model="form.reference" class="field-input" placeholder="Ej: frente al parque, edificio azul" />
 
             <label class="field-label">🏙️ Ciudad</label>
             <select v-model="form.city_id" class="field-select">
@@ -222,29 +210,17 @@
 
           <!-- Footer navegación -->
           <div class="modal-request-footer">
-            <button
-              v-if="currentStep > 0"
-              class="btn-prev"
-              @click="currentStep--"
-            >
+            <button v-if="currentStep > 0" class="btn-prev" @click="currentStep--">
               ← Anterior
             </button>
 
-            <button
-              v-if="currentStep < steps.length - 1"
-              class="btn-next"
-              :disabled="!stepValid"
-              @click="currentStep++"
-            >
+            <button v-if="currentStep < steps.length - 1" class="btn-next" :disabled="!stepValid"
+              @click="currentStep++">
               Siguiente →
             </button>
 
-            <button
-              v-if="currentStep === steps.length - 1"
-              class="btn-send"
-              :disabled="budgetError || sending"
-              @click="sendRequest"
-            >
+            <button v-if="currentStep === steps.length - 1" class="btn-send" :disabled="budgetError || sending"
+              @click="sendRequest">
               <span v-if="sending" class="spinner"></span>
               {{ sending ? 'Enviando...' : '🚀 Enviar solicitud' }}
             </button>
@@ -289,39 +265,56 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/services/api'
 import categoryService from '@/services/categoryService'
 
 /* ======================== */
 /* STATE                    */
 /* ======================== */
-const categories      = ref([])
-const allServices     = ref([])
-const cities          = ref([])
-const loadingCats     = ref(true)
+const categories = ref([])
+const allServices = ref([])
+const cities = ref([])
+const loadingCats = ref(true)
 
 const selectedCategory = ref(null)
-const selectedService  = ref(null)
+const selectedService = ref(null)
 
 const showServicesModal = ref(false)
-const showRequestModal  = ref(false)
-const showSuccessModal  = ref(false)
+const showRequestModal = ref(false)
+const showSuccessModal = ref(false)
 
 const currentStep = ref(0)
-const sending     = ref(false)
+const sending = ref(false)
 
 const steps = ['Descripción', 'Ubicación', 'Fecha y hora', 'Confirmar']
 
+
 const form = ref({
-  description:  '',
-  address:      '',
-  reference:    '',
-  city_id:      '',
+  description: '',
+  address: '',
+  reference: '',
+  city_id: '',
   service_date: '',
   service_time: '',
-  budget:       '',
+  budget: '',
   people_count: 1,
+  people_names: []
+})
+
+
+watch(() => form.value.people_count, (newVal) => {
+  const currentLength = form.value.people_names.length
+
+  if (newVal > currentLength) {
+    // agregar inputs
+    for (let i = currentLength; i < newVal; i++) {
+      form.value.people_names.push('')
+    }
+  } else if (newVal < currentLength) {
+    // eliminar extras
+    form.value.people_names.splice(newVal)
+  }
 })
 
 const toast = ref({ visible: false, message: '', type: '' })
@@ -339,7 +332,7 @@ const filteredServices = computed(() =>
 const totalPrice = computed(() => {
   if (!selectedService.value) return 0
   const people = parseInt(form.value.people_count || 1)
-  const price  = parseFloat(form.value.budget || selectedService.value.price || 0)
+  const price = parseFloat(selectedService.value.price || 0)
   return people * price
 })
 
@@ -349,10 +342,17 @@ const budgetError = computed(() => {
 })
 
 const stepValid = computed(() => {
-  if (currentStep.value === 0) return form.value.description.trim().length > 0
   if (currentStep.value === 1) return form.value.address.trim() && form.value.city_id
   if (currentStep.value === 2) return form.value.service_date && form.value.service_time
-  return true
+  if (currentStep.value === 0) {
+    if (!form.value.description.trim()) return false
+
+    if (selectedCategory.value?.name === 'Capacitación') {
+      return form.value.people_names.every(n => n.trim().length > 0)
+    }
+
+    return true
+  }
 })
 
 /* ======================== */
@@ -389,13 +389,13 @@ const showToast = (message, type = '') => {
 
 const resetForm = () => {
   form.value = {
-    description:  '',
-    address:      '',
-    reference:    '',
-    city_id:      '',
+    description: '',
+    address: '',
+    reference: '',
+    city_id: '',
     service_date: '',
     service_time: '',
-    budget:       '',
+    budget: '',
     people_count: 1,
   }
   currentStep.value = 0
@@ -405,20 +405,20 @@ const resetForm = () => {
 /* MODALS                   */
 /* ======================== */
 const openCategoryModal = (cat) => {
-  selectedCategory.value  = cat
+  selectedCategory.value = cat
   showServicesModal.value = true
 }
 
 const openRequestModal = (service) => {
-  selectedService.value  = service
-  form.value.budget      = service.price
+  selectedService.value = service
+  form.value.budget = service.price
   showServicesModal.value = false
-  showRequestModal.value  = true
-  currentStep.value       = 0
+  showRequestModal.value = true
+  currentStep.value = 0
 }
 
 const backToServices = () => {
-  showRequestModal.value  = false
+  showRequestModal.value = false
   showServicesModal.value = true
 }
 
@@ -463,6 +463,7 @@ const loadCities = async () => {
 /* SEND                     */
 /* ======================== */
 const sendRequest = async () => {
+
   if (!form.value.city_id) {
     showToast('Selecciona una ciudad', 'error'); return
   }
@@ -473,20 +474,21 @@ const sendRequest = async () => {
   try {
     sending.value = true
     await api.post('/client/service-request', {
-      category_id:  selectedCategory.value.id,
-      service_id:   selectedService.value.id,
-      description:  form.value.description,
-      address:      form.value.address,
-      reference:    form.value.reference,
-      city_id:      form.value.city_id,
+      category_id: selectedCategory.value.id,
+      service_id: selectedService.value.id,
+      description: form.value.description,
+      address: form.value.address,
+      reference: form.value.reference,
+      city_id: form.value.city_id,
       service_date: form.value.service_date,
       service_time: form.value.service_time,
       people_count: form.value.people_count,
-      budget:       totalPrice.value,
+      people_names: form.value.people_names,
+      budget: totalPrice.value,
     })
 
-    showRequestModal.value  = false
-    showSuccessModal.value  = true
+    showRequestModal.value = false
+    showSuccessModal.value = true
     resetForm()
 
   } catch (e) {
@@ -534,18 +536,22 @@ onMounted(() => {
 .hero-greeting::before {
   content: '';
   position: absolute;
-  top: -30px; right: -30px;
-  width: 160px; height: 160px;
-  background: rgba(255,255,255,0.06);
+  top: -30px;
+  right: -30px;
+  width: 160px;
+  height: 160px;
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 50%;
 }
 
 .hero-greeting::after {
   content: '';
   position: absolute;
-  bottom: -20px; left: 40%;
-  width: 100px; height: 100px;
-  background: rgba(255,255,255,0.04);
+  bottom: -20px;
+  left: 40%;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.04);
   border-radius: 50%;
 }
 
@@ -585,7 +591,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   padding: 12px 18px;
   backdrop-filter: blur(4px);
@@ -648,8 +654,13 @@ onMounted(() => {
 }
 
 @keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ======================== */
@@ -694,7 +705,9 @@ onMounted(() => {
   margin-bottom: 2px;
 }
 
-.cat-emoji { font-size: 22px; }
+.cat-emoji {
+  font-size: 22px;
+}
 
 .cat-name {
   font-size: 13px;
@@ -768,7 +781,9 @@ onMounted(() => {
   transition: background 0.15s;
 }
 
-.btn-close-modal:hover { background: #e2e8f0; }
+.btn-close-modal:hover {
+  background: #e2e8f0;
+}
 
 /* ======================== */
 /* MODAL SERVICIOS          */
@@ -893,13 +908,21 @@ onMounted(() => {
   color: #94a3b8;
 }
 
-.empty-services span { font-size: 28px; }
-.empty-services p    { font-size: 13px; margin-top: 8px; }
+.empty-services span {
+  font-size: 28px;
+}
+
+.empty-services p {
+  font-size: 13px;
+  margin-top: 8px;
+}
 
 /* ======================== */
 /* MODAL REQUEST            */
 /* ======================== */
-.modal-request { padding-bottom: 0; }
+.modal-request {
+  padding-bottom: 0;
+}
 
 .modal-request-header {
   display: flex;
@@ -955,8 +978,13 @@ onMounted(() => {
   transition: background 0.3s;
 }
 
-.step-dot.active  { background: #2563eb; }
-.step-dot.done    { background: #93c5fd; }
+.step-dot.active {
+  background: #2563eb;
+}
+
+.step-dot.done {
+  background: #93c5fd;
+}
 
 .step-label {
   text-align: center;
@@ -1065,8 +1093,18 @@ onMounted(() => {
   transition: background 0.15s, border-color 0.15s;
 }
 
-.stepper-btn:hover { background: #eff6ff; border-color: #2563eb; }
-.stepper-val { font-size: 22px; font-weight: 900; color: #0f172a; min-width: 30px; text-align: center; }
+.stepper-btn:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+}
+
+.stepper-val {
+  font-size: 22px;
+  font-weight: 900;
+  color: #0f172a;
+  min-width: 30px;
+  text-align: center;
+}
 
 /* Summary */
 .summary-card {
@@ -1086,12 +1124,34 @@ onMounted(() => {
   gap: 12px;
 }
 
-.summary-row span   { color: #64748b; flex-shrink: 0; }
-.summary-row strong { color: #0f172a; text-align: right; font-weight: 700; }
-.summary-divider    { height: 1px; background: #e2e8f0; }
+.summary-row span {
+  color: #64748b;
+  flex-shrink: 0;
+}
 
-.total-row span   { font-weight: 700; color: #0f172a; font-size: 14px; }
-.total-amount     { font-size: 22px; font-weight: 900; color: #2563eb; letter-spacing: -0.5px; }
+.summary-row strong {
+  color: #0f172a;
+  text-align: right;
+  font-weight: 700;
+}
+
+.summary-divider {
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.total-row span {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.total-amount {
+  font-size: 22px;
+  font-weight: 900;
+  color: #2563eb;
+  letter-spacing: -0.5px;
+}
 
 .error-msg {
   font-size: 13px;
@@ -1141,7 +1201,10 @@ onMounted(() => {
   transition: opacity 0.15s;
 }
 
-.btn-next:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-next:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 .btn-send {
   flex: 2;
@@ -1161,18 +1224,26 @@ onMounted(() => {
   transition: opacity 0.15s;
 }
 
-.btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .spinner {
-  width: 16px; height: 16px;
-  border: 2px solid rgba(255,255,255,0.4);
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ======================== */
 /* MODAL ÉXITO              */
@@ -1189,13 +1260,21 @@ onMounted(() => {
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.85); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .success-icon-wrap {
   margin: 0 auto 16px;
-  width: 72px; height: 72px;
+  width: 72px;
+  height: 72px;
   background: linear-gradient(135deg, #15803d, #16a34a);
   border-radius: 50%;
   display: flex;
@@ -1257,7 +1336,7 @@ onMounted(() => {
 /* ======================== */
 /* MODAL OVERLAY CENTRADO   */
 /* ======================== */
-.modal-success ~ .modal-overlay,
+.modal-success~.modal-overlay,
 .modal-overlay:has(.modal-success) {
   align-items: center;
 }
@@ -1266,29 +1345,60 @@ onMounted(() => {
 /* TOAST                    */
 /* ======================== */
 .toast {
-  position: fixed; bottom: 28px; left: 50%;
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
   transform: translateX(-50%);
-  background: #1e293b; color: #fff;
-  padding: 12px 22px; border-radius: 12px;
-  font-size: 13px; font-weight: 600; z-index: 9999;
-  white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  background: #1e293b;
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 9999;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   pointer-events: none;
 }
-.toast.error { background: #7f1d1d; }
-.toast.success { background: #14532d; }
 
-.toast-enter-active, .toast-leave-active {
-  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(.34,1.56,.64,1);
+.toast.error {
+  background: #7f1d1d;
 }
-.toast-enter-from { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.95); }
-.toast-leave-to   { opacity: 0; transform: translateX(-50%) translateY(10px); }
+
+.toast.success {
+  background: #14532d;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(16px) scale(0.95);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+}
 
 /* ======================== */
 /* MODAL TRANSITIONS        */
 /* ======================== */
-.modal-fade-enter-active { transition: opacity 0.2s ease; }
-.modal-fade-leave-active { transition: opacity 0.15s ease; }
-.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+.modal-fade-enter-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
 
 .modal-fade-enter-active .modal-sheet,
 .modal-fade-enter-active .modal-success {
@@ -1296,31 +1406,114 @@ onMounted(() => {
 }
 
 @keyframes slideUp {
-  from { transform: translateY(40px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* ======================== */
 /* RESPONSIVE               */
 /* ======================== */
 @media (max-width: 640px) {
-  .hero-greeting { padding: 20px; }
-  .hero-title    { font-size: 26px; }
-  .hero-right    { display: none; }
+  .hero-greeting {
+    padding: 20px;
+  }
+
+  .hero-title {
+    font-size: 26px;
+  }
+
+  .hero-right {
+    display: none;
+  }
 
   .categories-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .modal-sheet { max-height: 92vh; }
+  .modal-sheet {
+    max-height: 92vh;
+  }
 }
 
 @media (min-width: 641px) {
-  .modal-overlay { align-items: center; }
+  .modal-overlay {
+    align-items: center;
+  }
+
   .modal-sheet {
     border-radius: 24px;
     margin: 20px;
     max-height: 85vh;
   }
+}
+.people-names {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Contenedor con scroll si hay muchos */
+.people-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Tarjeta individual */
+.person-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Hover más moderno */
+.person-card:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+/* Número de persona */
+.person-index {
+  min-width: 32px;
+  height: 32px;
+  background: #2563eb;
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Input más cómodo */
+.person-input-field {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  background: transparent;
+  color: #0f172a;
+  font-family: inherit;
+}
+
+/* Placeholder */
+.person-input-field::placeholder {
+  color: #94a3b8;
 }
 </style>

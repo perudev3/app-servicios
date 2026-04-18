@@ -122,6 +122,7 @@
               Email
               <span class="sort-icon">{{ sortIcon('email') }}</span>
             </th>
+            <th class="hide-md">Especialidad</th>
             <th>Rol</th>
             <th class="hide-md">Estado</th>
             <th @click="setSort('created_at')" class="sortable hide-sm">
@@ -162,6 +163,16 @@
               <span class="email-text">{{ user.email }}</span>
             </td>
 
+            <td class="td-specialty hide-md">
+              <span class="specialty-badge">
+                {{
+                  user.role === 'professional'
+                    ? (user.professional?.category?.name || '—')
+                : 'No aplica'
+                }}
+              </span>
+            </td>
+
             <!-- Role -->
             <td class="td-role">
               <span :class="['role-badge', `role-${user.role}`]">
@@ -187,7 +198,7 @@
                     ? (user.professional?.status === 'approved'
                       ? 'Aprobado'
                       : 'Pendiente')
-                : 'No requerido'
+                    : 'No requerido'
                 }}
 
               </span>
@@ -2327,6 +2338,17 @@ td {
   padding: 2px 8px;
   border-radius: 6px;
   letter-spacing: 1px;
+}
+
+.specialty-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ecfeff;
+  color: #0891b2;
+  white-space: nowrap;
 }
 
 .doc-empty {

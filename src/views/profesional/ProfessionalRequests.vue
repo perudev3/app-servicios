@@ -1,189 +1,194 @@
-<template>
-  <div class="requests-container">
+    <template>
+      <div class="requests-container">
 
-    <!-- MAPA -->
-    <div id="pro-map" ref="mapRef"></div>
-
-    <!-- HEADER -->
-    <div class="requests-header">
-      <div>
-        <h2>Solicitudes disponibles</h2>
-        <p class="subtitle">
-          {{ subtitleText }}
-        </p>
-      </div>
-      <div class="live-badge">
-        <span class="live-dot"></span>
-        En vivo
-      </div>
-    </div>
-
-    <!-- LISTA DE SOLICITUDES -->
-    <div class="requests-list">
-
-      <div v-if="loading" class="skeleton-list">
-        <div v-for="n in 2" :key="n" class="skeleton-card">
-          <div class="skeleton-line w-60"></div>
-          <div class="skeleton-line w-90 short"></div>
-          <div class="skeleton-line w-40 short"></div>
-          <div class="skeleton-footer">
-            <div class="skeleton-circle"></div>
-            <div class="skeleton-line w-30 short"></div>
-          </div>
-        </div>
-      </div>
-
-      <div v-else-if="requests.length === 0" class="empty-state">
-        <div class="empty-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
-            <path
-              d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 01-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 011-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 011.52 0C14.51 3.81 17 5 19 5a1 1 0 011 1z" />
-          </svg>
-        </div>
-        <p class="empty-title">Sin solicitudes por ahora</p>
-        <small>Actualizando cada 5 segundos...</small>
-      </div>
-
-      <TransitionGroup name="card" tag="div" class="card-group">
-        <div v-for="req in requests" :key="req.id" class="request-card" :class="{ 'request-new': req.isNew }">
-
-          <!-- Badge nueva -->
-          <span v-if="req.isNew" class="new-badge">Nueva</span>
-
-          <!-- Top -->
-          <div class="request-top">
-            <div class="service-icon-wrap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" width="16" height="16">
-                <path
-                  d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-              </svg>
-            </div>
-            <div class="request-service">{{ req.service_name }}</div>
-            <div class="request-budget">${{ req.budget }}</div>
-          </div>
-
-          <!-- Descripción -->
-          <p class="request-description">{{ req.description }}</p>
-
-          <!-- Meta chips -->
-          <div class="request-meta">
-            <span class="meta-chip">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <path d="M16 2v4M8 2v4M3 10h18" />
-              </svg>
-              {{ req.service_date }} {{ req.service_time }}
-            </span>
-            <span v-if="req.address" class="meta-chip">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-              {{ req.address }}
-            </span>
-          </div>
-
-          <div class="request-divider"></div>
-
-          <!-- Footer -->
-          <div class="request-footer">
-            <div class="client-info">
-              <div class="client-avatar">{{ getInitials(req.client_name) }}</div>
-              <span class="client-name">
-                {{ req.client_name }}
-              </span>
-            </div>
-
-            <div class="actions">
-              <button class="btn-distance" @click="viewDistance(req)">
-                Distancia
-              </button>
-              <button class="btn-detail" @click="openDetails(req)">
-                Detalles
-              </button>
-              <button class="btn-reject" @click="rejectRequest(req)">
-                Rechazar
-              </button>
-              <button class="btn-accept" @click="acceptRequest(req)" :disabled="accepting === req.id">
-                {{ accepting === req.id ? 'Aceptando...' : 'Aceptar →' }}
-              </button>
-            </div>
-
-          </div>
-
-        </div>
-      </TransitionGroup>
-
-    </div>
-
-    <div v-if="showDetailsModal" class="modal-overlay">
-      <div class="modal-pro">
+        <!-- MAPA -->
+        <div id="pro-map" ref="mapRef"></div>
 
         <!-- HEADER -->
-        <div class="modal-header">
-          <div class="avatar-big">
-            {{ getInitials(selectedRequest?.client_name) }}
-          </div>
+        <div class="requests-header">
           <div>
-            <h3>{{ selectedRequest?.client_name }}</h3>
-            <p class="service-tag">{{ selectedRequest?.service_name }}</p>
+            <h2>Solicitudes disponibles</h2>
+            <p class="subtitle">
+              {{ subtitleText }}
+            </p>
+          </div>
+          <div class="live-badge">
+            <span class="live-dot"></span>
+            En vivo
           </div>
         </div>
 
-        <!-- INFO -->
-        <div class="modal-body">
+        <!-- LISTA DE SOLICITUDES -->
+        <div class="requests-list">
 
-          <div class="info-card">
-            <span>📍 Dirección</span>
-            <p>{{ selectedRequest?.address }}</p>
-          </div>
-
-          <div class="info-card">
-            <span>📝 Descripción</span>
-            <p>{{ selectedRequest?.description }}</p>
-          </div>
-
-          <div class="info-row">
-            <div class="mini-card">
-              <span>📅</span>
-              <p>{{ selectedRequest?.service_date }}</p>
-            </div>
-
-            <div class="mini-card">
-              <span>⏰</span>
-              <p>{{ selectedRequest?.service_time }}</p>
+          <div v-if="loading" class="skeleton-list">
+            <div v-for="n in 2" :key="n" class="skeleton-card">
+              <div class="skeleton-line w-60"></div>
+              <div class="skeleton-line w-90 short"></div>
+              <div class="skeleton-line w-40 short"></div>
+              <div class="skeleton-footer">
+                <div class="skeleton-circle"></div>
+                <div class="skeleton-line w-30 short"></div>
+              </div>
             </div>
           </div>
 
-          <div class="price-card">
-            ${{ selectedRequest?.budget }}
+          <div v-else-if="requests.length === 0" class="empty-state">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
+                <path
+                  d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 01-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 011-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 011.52 0C14.51 3.81 17 5 19 5a1 1 0 011 1z" />
+              </svg>
+            </div>
+            <p class="empty-title">Sin solicitudes por ahora</p>
+            <small>Actualizando cada 5 segundos...</small>
           </div>
 
+          <TransitionGroup name="card" tag="div" class="card-group">
+            <div v-for="req in requests" :key="req.id" class="request-card" :class="{ 'request-new': req.isNew }">
+
+              <!-- Badge nueva -->
+              <span v-if="req.isNew" class="new-badge">Nueva</span>
+
+              <!-- Top -->
+              <div class="request-top">
+                <div class="service-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" width="16" height="16">
+                    <path
+                      d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                  </svg>
+                </div>
+                <div class="request-service">{{ req.service_name }}</div>
+                <div class="request-budget">${{ req.budget }}</div>
+              </div>
+
+              <!-- Descripción -->
+              <p class="request-description">{{ req.description }}</p>
+
+              <!-- Meta chips -->
+              <div class="request-meta">
+                <span class="meta-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <path d="M16 2v4M8 2v4M3 10h18" />
+                  </svg>
+                  {{ req.service_date }} {{ req.service_time }}
+                </span>
+                <span v-if="req.address" class="meta-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  {{ req.address }}
+                </span>
+              </div>
+
+              <div class="request-divider"></div>
+
+              <!-- Footer -->
+              <div class="request-footer">
+                <div class="client-info">
+                  <div class="client-avatar">{{ getInitials(req.client_name) }}</div>
+                  <span class="client-name">
+                    {{ req.client_name }}
+                  </span>
+                </div>
+
+                <div class="actions">
+                  <button class="btn-distance" @click="viewDistance(req)">
+                    Distancia
+                  </button>
+                  <button class="btn-detail" @click="openDetails(req)">
+                    Detalles
+                  </button>
+                  <button class="btn-accept" @click="acceptRequest(req)" :disabled="accepting === req.id">
+                    {{ accepting === req.id ? 'Aceptando...' : 'Aceptar →' }}
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+          </TransitionGroup>
+
         </div>
 
-        <!-- ACTIONS -->
-        <div class="modal-actions">
-          <button class="btn-close" @click="showDetailsModal = false">
-            Cerrar
-          </button>
+        <div v-if="showDetailsModal" class="modal-overlay">
+          <div class="modal-pro">
 
-          <button class="btn-go" @click="viewDistance(selectedRequest)">
-            Ver ruta
-          </button>
+            <!-- HEADER -->
+            <div class="modal-header">
+              <div class="avatar-big">
+                {{ getInitials(selectedRequest?.client_name) }}
+              </div>
+              <div>
+                <h3>{{ selectedRequest?.client_name }}</h3>
+                <p class="service-tag">{{ selectedRequest?.service_name }}</p>
+              </div>
+            </div>
+
+            <!-- INFO -->
+            <div class="modal-body">
+
+              <div class="info-card">
+                <span>📍 Dirección</span>
+                <p>{{ selectedRequest?.address }}</p>
+              </div>
+
+              <div class="info-card">
+                <span>📝 Descripción</span>
+                <p>{{ selectedRequest?.description }}</p>
+              </div>
+
+              <div v-if="selectedRequest?.people_count" class="info-card">
+                <span>👥 Personas</span>
+                <p>{{ selectedRequest?.people_count }}</p>
+              </div>
+
+              <p v-if="selectedRequest?.people_count" class="request-people">
+                👥 {{ selectedRequest?.people_count }} personas
+              </p>
+              <div class="info-row">
+                <div class="mini-card">
+                  <span>📅</span>
+                  <p>{{ selectedRequest?.service_date }}</p>
+                </div>
+
+                <div class="mini-card">
+                  <span>⏰</span>
+                  <p>{{ selectedRequest?.service_time }}</p>
+                </div>
+              </div>
+
+              <div class="price-card">
+                ${{ selectedRequest?.budget }}
+              </div>
+
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="modal-actions">
+              <button class="btn-close" @click="showDetailsModal = false">
+                Cerrar
+              </button>
+
+              <button class="btn-go" @click="viewDistance(selectedRequest)">
+                Ver ruta
+              </button>
+            </div>
+
+          </div>
         </div>
 
-      </div>
-    </div>
+        <!-- TOAST -->
+        <Transition name="toast">
+          <div v-if="toast.visible" class="toast" :class="toast.type">
+            {{ toast.message }}
+          </div>
+        </Transition>
 
-    <!-- TOAST -->
-    <Transition name="toast">
-      <div v-if="toast.visible" class="toast" :class="toast.type">
-        {{ toast.message }}
       </div>
-    </Transition>
-
-  </div>
-</template>
+    </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from "vue"
@@ -324,16 +329,16 @@ const createClientIcon = () => {
   return L.divIcon({
     className: '',
     html: `
-      <div class="client-marker">
-        <div class="client-ring"></div>
-        <div class="client-core">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="12" height="12">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-        </div>
-      </div>
-    `,
+          <div class="client-marker">
+            <div class="client-ring"></div>
+            <div class="client-core">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="12" height="12">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+          </div>
+        `,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   })
@@ -383,32 +388,43 @@ const initMap = async () => {
 const loadRequests = async () => {
   try {
     const res = await api.get("/professional/requests/available")
+    const newData = res.data
 
-    const newData = res.data.map(req => ({
-      ...req,
-      isNew: !previousIds.includes(req.id)
-    }))
+    // detectar nuevos
+    const newIds = newData.map(r => r.id)
+    const addedIds = newIds.filter(id => !previousIds.includes(id))
 
-    previousIds = res.data.map(r => r.id)
+    // marcar nuevos
+    newData.forEach(r => {
+      r.isNew = addedIds.includes(r.id)
+    })
+
+    previousIds = newIds
     requests.value = newData
 
-    // Limpiar markers
+    // limpiar markers anteriores
     markers.forEach(m => map.removeLayer(m))
     markers = []
 
-    // Marker por cada solicitud
+    // crear markers
     newData.forEach(req => {
-      const pos = randomNearby(cityCenter.lat, cityCenter.lng, 5)
+      let lat = req.lat
+      let lng = req.lng
 
-      const marker = L.marker([pos.lat, pos.lng], { icon: createClientIcon() })
+      if (!lat || !lng) {
+        lat = cityCenter.lat
+        lng = cityCenter.lng
+      }
+
+      const marker = L.marker([lat, lng], { icon: createClientIcon() })
         .addTo(map)
         .bindPopup(`
-          <div style="min-width:160px;padding:4px;font-family:inherit">
-            <strong style="font-size:13px">${req.service_name || 'Servicio'}</strong><br>
-            <span style="color:#64748b;font-size:12px">${req.description?.substring(0, 60)}...</span><br>
-            <strong style="color:#2563eb;font-size:14px">$${req.budget}</strong>
-          </div>
-        `)
+              <div style="min-width:160px;padding:4px;font-family:inherit">
+                <strong style="font-size:13px">${req.service_name || 'Servicio'}</strong><br>
+                <span style="color:#64748b;font-size:12px">${req.description?.substring(0, 60)}...</span><br>
+                <strong style="color:#2563eb;font-size:14px">$${req.budget}</strong>
+              </div>
+            `)
 
       markers.push(marker)
     })
@@ -444,17 +460,6 @@ const acceptRequest = async (req) => {
   }
 }
 
-/* ======================= */
-/* REJECT REQUEST          */
-/* ======================= */
-const rejectRequest = async (req) => {
-  try {
-    await api.post(`/professional/requests/${req.id}/reject`)
-    requests.value = requests.value.filter(r => r.id !== req.id)
-  } catch {
-    showToast('Error al rechazar la solicitud', 'error')
-  }
-}
 
 const getCoordsFromAddress = async (address, city) => {
   try {
@@ -504,7 +509,6 @@ const viewDistance = async (req) => {
     lng = coords.lng
   }
 
-  // ✅ PRIMERO calcula
   const distance = calculateDistance(
     myLocation.value.lat,
     myLocation.value.lng,
@@ -512,15 +516,10 @@ const viewDistance = async (req) => {
     lng
   )
 
-  // 🚨 validación
-  if (distance > 100) {
-    showToast("El cliente está demasiado lejos para trazar ruta", "warning")
-    return
-  }
-
-  // ✅ LUEGO usa
+  // ✅ SIEMPRE mostrar distancia
   showToast(`Distancia: ${distance} km`, 'success')
 
+  // ✅ SIEMPRE dibujar ruta
   drawRoute(
     myLocation.value,
     { lat, lng }
@@ -560,7 +559,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-
 #pro-map {
   width: 100%;
   height: 240px;
@@ -569,8 +567,10 @@ onUnmounted(() => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
 
-  position: relative;   /* 👈 CLAVE */
-  z-index: 1;           /* 👈 CLAVE */
+  position: relative;
+  /* 👈 CLAVE */
+  z-index: 1;
+  /* 👈 CLAVE */
 }
 
 :global(.leaflet-pane),
@@ -578,6 +578,7 @@ onUnmounted(() => {
 :global(.leaflet-bottom) {
   z-index: 1 !important;
 }
+
 /* ======================= */
 /* CONTAINER               */
 /* ======================= */
@@ -1269,5 +1270,12 @@ onUnmounted(() => {
   border: none;
   padding: 8px 14px;
   border-radius: 8px;
+}
+
+.request-people {
+  font-size: 12px;
+  color: #0f172a;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 </style>

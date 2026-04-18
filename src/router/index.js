@@ -20,88 +20,72 @@ const routes = [
     path: '/',
     name: 'Landing',
     component: Landing,
-    meta: {
-      title: 'IService - Encuentra profesionales de confianza',
-    },
+    meta: { title: 'IService - Encuentra profesionales de confianza' },
   },
   {
     path: '/login',
     name: 'Login',
     component: Login,
-    meta: {
-      title: 'Iniciar Sesión - IService',
-    },
+    meta: { title: 'Iniciar Sesión - IService' },
   },
-  //Cliente
+
+  // ── Cliente ────────────────────────────────────────────────
   {
     path: '/dashboard/client',
     name: 'DashboardClient',
     component: DashboardClient,
-    meta: {
-      requiresAuth: true,
-      role: 'client',
-      title: 'Dashboard Cliente - IService',
-    },
+    meta: { requiresAuth: true, role: 'client', title: 'Dashboard Cliente - IService' },
     children: [
       {
         path: '',
-        name: 'ClientelHome',
-        component: () => import('@/views/cliente/ClienteHome.vue')
+        name: 'ClienteHome',
+        component: () => import('@/views/cliente/ClienteHome.vue'),
       },
       {
         path: 'solicitudes',
         name: 'MisSolicitudes',
         component: () => import('@/views/cliente/MisSolicitudes.vue'),
-        meta: { requiresAuth: true, role: 'client' }
-      }
-    ]
+        meta: { requiresAuth: true, role: 'client' },
+      },
+    ],
   },
-  //Profesional
+
+  // ── Profesional ────────────────────────────────────────────
   {
     path: '/dashboard/professional',
     component: DashboardProfessional,
-    meta: {
-      requiresAuth: true,
-      role: 'professional',
-    },
+    meta: { requiresAuth: true, role: 'professional' },
     children: [
       {
         path: '',
         name: 'ProfessionalHome',
-        component: () => import('@/views/profesional/ProfessionalHome.vue')
+        component: () => import('@/views/profesional/ProfessionalHome.vue'),
       },
       {
         path: 'profile',
         name: 'ProfileProfesional',
-        component: () => import('@/views/profesional/ProfessionalProfile.vue')
+        component: () => import('@/views/profesional/ProfessionalProfile.vue'),
       },
       {
         path: 'trabajos',
         name: 'MisTrabajos',
         component: () => import('@/views/profesional/MisTrabajos.vue'),
-        meta: { requiresAuth: true, role: 'professional' }
-      }
-    ]
+        meta: { requiresAuth: true, role: 'professional' },
+      },
+    ],
   },
-  //Administrador
+
+  // ── Admin ──────────────────────────────────────────────────
   {
     path: '/dashboard/admin',
     component: DashboardAdmin,
-    meta: {
-      requiresAuth: true,
-      role: 'admin',
-      title: 'Panel Admin - IService',
-    },
+    meta: { requiresAuth: true, role: 'admin', title: 'Panel Admin - IService' },
     children: [
       {
         path: '',
         name: 'DashboardAdmin',
         component: () => import('@/views/admin/AdminHome.vue'),
-        meta: {
-          requiresAuth: true,
-          role: 'admin',
-          title: 'Panel Admin - IService',
-        },
+        meta: { requiresAuth: true, role: 'admin', title: 'Panel Admin - IService' },
       },
       {
         path: 'users',
@@ -110,6 +94,7 @@ const routes = [
         meta: {
           requiresAuth: true,
           role: 'admin',
+          module: 'users',              // ← protegido por módulo
           title: 'Panel Usuarios - IService',
         },
       },
@@ -120,21 +105,33 @@ const routes = [
         meta: {
           requiresAuth: true,
           role: 'admin',
+          module: 'categories',         // ← protegido por módulo
           title: 'Panel Categorias - IService',
         },
-      }
-    ]
+      },
+      {
+        path: 'sub-admins',
+        name: 'AdminSubAdmins',
+        component: () => import('@/views/admin/AdminSubAdmins.vue'),
+        meta: {
+          requiresAuth: true,
+          role: 'admin',
+          superAdminOnly: true,         // ← solo super admin
+          title: 'Administradores - IService',
+        },
+      },
+    ],
   },
+
+  // ── Redirects ──────────────────────────────────────────────
   {
-    // Redirect old routes
     path: '/dashboard',
-    redirect: (to) => {
+    redirect: () => {
       const userRole = localStorage.getItem('userRole');
       return `/dashboard/${userRole || 'client'}`;
     },
   },
   {
-    // 404 Not Found
     path: '/:pathMatch(.*)*',
     redirect: '/',
   },
@@ -144,58 +141,63 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior(to, from, savedPosition) {
-    if (savedPosition) {
-      return savedPosition;
-    } else if (to.hash) {
-      return {
-        el: to.hash,
-        behavior: 'smooth',
-      };
-    } else {
-      return { top: 0, behavior: 'smooth' };
-    }
+    if (savedPosition)   return savedPosition;
+    if (to.hash)         return { el: to.hash, behavior: 'smooth' };
+    return { top: 0, behavior: 'smooth' };
   },
 });
 
-// Navigation Guard - Authentication
+// ── Navigation Guard ───────────────────────────────────────
 router.beforeEach((to, from, next) => {
-  // Update page title
   document.title = to.meta.title || 'IService';
 
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  const userRole = localStorage.getItem('userRole');
+  const userRole        = localStorage.getItem('userRole');
 
-  // Check if route requires authentication
+  // 1. No autenticado
   if (to.meta.requiresAuth && !isAuthenticated) {
-    // Not authenticated, redirect to login
-    next({
-      path: '/login',
-      query: { redirect: to.fullPath },
-    });
-  } else if (
-    to.meta.requiresAuth &&
-    to.meta.role &&
-    to.meta.role !== userRole
-  ) {
-    // Authenticated but wrong role
-    console.warn(
-      `Access denied: User role '${userRole}' doesn't match required role '${to.meta.role}'`
-    );
-    next(`/dashboard/${userRole}`);
-  } else if (to.path === '/login' && isAuthenticated) {
-    // Already logged in, redirect to dashboard
-    next(`/dashboard/${userRole}`);
-  } else {
-    // Allow navigation
-    next();
+    return next({ path: '/login', query: { redirect: to.fullPath } });
   }
+
+  // 2. Rol incorrecto
+  if (to.meta.requiresAuth && to.meta.role && to.meta.role !== userRole) {
+    console.warn(`Acceso denegado: rol '${userRole}' no puede entrar a ruta de '${to.meta.role}'`);
+    return next(`/dashboard/${userRole}`);
+  }
+
+  // 3. Ya autenticado intentando entrar al login
+  if (to.path === '/login' && isAuthenticated) {
+    return next(`/dashboard/${userRole}`);
+  }
+
+  // 4. Guards de módulos admin
+  if (to.meta.role === 'admin' && (to.meta.module || to.meta.superAdminOnly)) {
+    const storedUser   = localStorage.getItem('user');
+    const user         = storedUser ? JSON.parse(storedUser) : null;
+    const isSuperAdmin = user?.is_super_admin ?? false;
+
+    // Solo super admin puede entrar a rutas superAdminOnly
+    if (to.meta.superAdminOnly && !isSuperAdmin) {
+      return next({ name: 'DashboardAdmin' });
+    }
+
+    // Verificar acceso al módulo
+    if (to.meta.module) {
+      const hasAccess = isSuperAdmin || (user?.permissions?.[to.meta.module] === true);
+      if (!hasAccess) {
+        console.warn(`Sin acceso al módulo: ${to.meta.module}`);
+        return next({ name: 'DashboardAdmin' });
+      }
+    }
+  }
+
+  next();
 });
 
-// After each navigation
+// ── After each ────────────────────────────────────────────
 router.afterEach((to, from) => {
-  // Log navigation (useful for analytics)
   if (import.meta.env.DEV) {
-    console.log(`Navigated from ${from.path} to ${to.path}`);
+    console.log(`Navegó de ${from.path} a ${to.path}`);
   }
 });
 

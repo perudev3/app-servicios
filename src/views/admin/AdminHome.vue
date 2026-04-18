@@ -1,173 +1,113 @@
-      <template v-else>
-        <!-- Loading -->
-        <div v-if="loadingStats" class="loading-overlay">
-          <div class="loading-spinner"></div>
-          <p>Cargando estadísticas...</p>
+<template v-else>
+
+  <!-- Loading -->
+  <div v-if="loadingStats" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <p>Cargando estadísticas...</p>
+  </div>
+
+  <!-- Error -->
+  <div v-if="apiError" class="api-error-banner">
+    ⚠️ {{ apiError }}
+  </div>
+
+  <!-- ALERTA -->
+  <div v-if="stats.pendingProfessionals > 0" class="alert-banner">
+    ⚠️ {{ stats.pendingProfessionals }} profesionales pendientes de aprobación
+  </div>
+
+  <!-- MAIN STATS -->
+  <div class="main-stats-grid" v-if="!loadingStats">
+
+    <div class="main-stat-card">
+      <span class="stat-icon">👥</span>
+      <div class="stat-value">{{ stats.totalUsers }}</div>
+      <div class="stat-label">Usuarios</div>
+    </div>
+
+    <div class="main-stat-card">
+      <span class="stat-icon">💼</span>
+      <div class="stat-value">{{ stats.totalProfessionals }}</div>
+      <div class="stat-label">Profesionales</div>
+    </div>
+
+    <div class="main-stat-card">
+      <span class="stat-icon">👤</span>
+      <div class="stat-value">{{ stats.totalClients }}</div>
+      <div class="stat-label">Clientes</div>
+    </div>
+
+    <div class="main-stat-card">
+      <span class="stat-icon">🟢</span>
+      <div class="stat-value">{{ stats.activeUsers }}</div>
+      <div class="stat-label">Activos</div>
+    </div>
+
+  </div>
+
+  <!-- HEALTH -->
+  <div class="health-grid">
+
+    <div class="health-card success">
+      <span>✔</span>
+      <div>
+        <div class="health-title">Activos</div>
+        <div class="health-value">{{ stats.activeUsers }}</div>
+      </div>
+    </div>
+
+    <div class="health-card warning">
+      <span>⏳</span>
+      <div>
+        <div class="health-title">Pendientes</div>
+        <div class="health-value">{{ stats.pendingProfessionals }}</div>
+      </div>
+    </div>
+
+    <div class="health-card danger">
+      <span>🚫</span>
+      <div>
+        <div class="health-title">Inactivos</div>
+        <div class="health-value">{{ stats.inactiveUsers }}</div>
+      </div>
+    </div>
+
+    <div class="health-card info">
+      <span>📊</span>
+      <div>
+        <div class="health-title">Conversión</div>
+        <div class="health-value">{{ conversionRate }}%</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- USUARIOS RECIENTES -->
+  <div class="section-card">
+    <div class="card-header">
+      <h3>Usuarios Recientes</h3>
+    </div>
+
+    <div v-if="loadingUsers">Cargando...</div>
+
+    <div v-else>
+      <div v-for="user in recentUsers" :key="user.id" class="user-item">
+        <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`" />
+        <div>
+          <div>{{ user.name }}</div>
+          <small>{{ roleMap[user.role] }}</small>
         </div>
+        <span :class="user.email_verified_at ? 'status-ok' : 'status-pending'">
+          {{ user.email_verified_at ? 'Activo' : 'Pendiente' }}
+        </span>
+      </div>
+    </div>
+  </div>
 
-        <!-- Error -->
-        <div v-if="apiError" class="api-error-banner">
-          <span>⚠️ {{ apiError }}</span>
-          <button @click="apiError = ''" class="close-error">✕</button>
-        </div>
+</template>
 
-        <!-- Stats Grid -->
-        <div class="main-stats-grid" v-if="!loadingStats">
-          <div class="main-stat-card users">
-            <div class="stat-header">
-              <div class="stat-icon-wrapper"><span>👥</span></div>
-              <div class="stat-trend positive">+12.5%</div>
-            </div>
-            <div class="stat-value">{{ stats.totalUsers.toLocaleString() }}</div>
-            <div class="stat-label">Usuarios Totales</div>
-            <div class="stat-breakdown">
-              <div class="breakdown-item">
-                <span class="breakdown-dot clients"></span>
-                <span>{{ stats.totalClients.toLocaleString() }} Clientes</span>
-              </div>
-              <div class="breakdown-item">
-                <span class="breakdown-dot pros"></span>
-                <span>{{ stats.totalProfessionals.toLocaleString() }} Profesionales</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="main-stat-card revenue">
-            <div class="stat-header">
-              <div class="stat-icon-wrapper"><span>💰</span></div>
-              <div class="stat-trend positive">+8.3%</div>
-            </div>
-            <div class="stat-value">${{ stats.monthlyRevenue.toLocaleString() }}</div>
-            <div class="stat-label">Ingresos Este Mes</div>
-            <div class="mini-chart">
-              <div v-for="(v, i) in revenueChart" :key="i" class="mini-bar" :style="{ height: v + '%' }"></div>
-            </div>
-          </div>
-
-          <div class="main-stat-card services">
-            <div class="stat-header">
-              <div class="stat-icon-wrapper"><span>📋</span></div>
-              <div class="stat-trend positive">+15.2%</div>
-            </div>
-            <div class="stat-value">{{ stats.activeServices.toLocaleString() }}</div>
-            <div class="stat-label">Servicios Activos</div>
-            <div class="stat-detail">
-              <span class="detail-highlight">{{ stats.pendingServices }}</span> pendientes
-            </div>
-          </div>
-
-          <div class="main-stat-card satisfaction">
-            <div class="stat-header">
-              <div class="stat-icon-wrapper"><span>⭐</span></div>
-              <div class="stat-trend positive">+0.2</div>
-            </div>
-            <div class="stat-value">{{ stats.avgRating }}/5</div>
-            <div class="stat-label">Satisfacción</div>
-            <div class="rating-bars">
-              <div class="rating-bar"><div class="bar-fill" style="width:95%"></div></div>
-              <div class="rating-bar"><div class="bar-fill" style="width:85%"></div></div>
-              <div class="rating-bar"><div class="bar-fill" style="width:70%"></div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Two Columns -->
-        <div class="two-column-section">
-          <div class="section-card">
-            <div class="card-header">
-              <h3 class="card-title">Usuarios Recientes</h3>
-              <a href="#" class="view-link">Ver todos →</a>
-            </div>
-            <div v-if="loadingUsers" class="inner-loading">Cargando...</div>
-            <div v-else class="users-list">
-              <div v-for="user in recentUsers" :key="user.id" class="user-item">
-                <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`" alt="User" class="user-item-avatar" />
-                <div class="user-item-info">
-                  <div class="user-item-name">{{ user.name }}</div>
-                  <div class="user-item-type">{{ roleMap[user.role] ?? user.role }}</div>
-                </div>
-                <span :class="['user-item-status', user.email_verified_at ? 'active' : 'pending']">
-                  {{ user.email_verified_at ? 'Activo' : 'Pendiente' }}
-                </span>
-              </div>
-              <div v-if="recentUsers.length === 0" class="empty-state">No hay usuarios recientes</div>
-            </div>
-          </div>
-
-          <div class="section-card">
-            <div class="card-header">
-              <h3 class="card-title">Pendientes de Aprobación</h3>
-              <a href="#" class="view-link">Ver todos →</a>
-            </div>
-            <div class="approvals-list">
-              <div v-for="item in pendingApprovals" :key="item.id" class="approval-item">
-                <div class="approval-icon">{{ item.icon }}</div>
-                <div class="approval-info">
-                  <div class="approval-title">{{ item.title }}</div>
-                  <div class="approval-desc">{{ item.description }}</div>
-                  <div class="approval-time">{{ item.time }}</div>
-                </div>
-                <div class="approval-actions">
-                  <button class="approve-btn" @click="handleApprove(item)">✓</button>
-                  <button class="reject-btn" @click="handleReject(item)">✗</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Table -->
-        <div class="section">
-          <div class="section-card">
-            <div class="card-header">
-              <h3 class="card-title">Estadísticas por Categoría</h3>
-              <button class="export-btn">
-                <span>📊</span>
-                <span class="export-label"> Exportar</span>
-              </button>
-            </div>
-            <div class="stats-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Categoría</th>
-                    <th>Servicios</th>
-                    <th class="hide-sm">Profesionales</th>
-                    <th>Ingresos</th>
-                    <th class="hide-sm">Calificación</th>
-                    <th>Tendencia</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="category in categoryStats" :key="category.id">
-                    <td>
-                      <div class="table-category">
-                        <span class="category-icon">{{ category.icon }}</span>
-                        <span>{{ category.name }}</span>
-                      </div>
-                    </td>
-                    <td><strong>{{ category.services }}</strong></td>
-                    <td class="hide-sm">{{ category.professionals }}</td>
-                    <td><span class="revenue-value">${{ category.revenue.toLocaleString() }}</span></td>
-                    <td class="hide-sm"><span class="rating-badge">⭐ {{ category.rating }}</span></td>
-                    <td>
-                      <span :class="['trend-indicator', category.trend > 0 ? 'up' : 'down']">
-                        {{ category.trend > 0 ? '↗' : '↘' }} {{ Math.abs(category.trend) }}%
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bottom spacer for mobile nav -->
-        <div class="mobile-bottom-spacer"></div>
-      </template>
-
-      <script setup>
-    import { ref, onMounted } from 'vue'
+<script setup>
+import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 
 const loadingStats = ref(false)
@@ -178,20 +118,31 @@ const stats = ref({
   totalUsers: 0,
   totalClients: 0,
   totalProfessionals: 0,
-  monthlyRevenue: 0,
-  activeServices: 0,
-  pendingServices: 0,
-  avgRating: 0,
+  activeUsers: 0,
+  inactiveUsers: 0,
+  pendingProfessionals: 0,
 })
 
 const recentUsers = ref([])
+
+const roleMap = {
+  client: 'Cliente',
+  professional: 'Profesional'
+}
+
+const conversionRate = computed(() => {
+  if (!stats.value.totalUsers) return 0
+  return Math.round(
+    (stats.value.totalProfessionals / stats.value.totalUsers) * 100
+  )
+})
 
 const fetchStats = async () => {
   loadingStats.value = true
   try {
     const { data } = await api.get('/admin/stats')
     if (data.success) stats.value = data.stats
-  } catch (e) {
+  } catch {
     apiError.value = 'Error cargando estadísticas'
   } finally {
     loadingStats.value = false
@@ -201,8 +152,8 @@ const fetchStats = async () => {
 const fetchRecentUsers = async () => {
   loadingUsers.value = true
   try {
-    const { data } = await api.get('/admin/users?per_page=4')
-    if (data.success) recentUsers.value = data.users.data ?? data.users
+    const { data } = await api.get('/admin/users?per_page=5')
+    if (data.success) recentUsers.value = data.users.data
   } catch {
     recentUsers.value = []
   } finally {
@@ -214,4 +165,83 @@ onMounted(() => {
   fetchStats()
   fetchRecentUsers()
 })
-    </script>
+</script>
+
+
+<style>
+.main-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.main-stat-card {
+  background: white;
+  padding: 16px;
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+}
+
+.stat-icon {
+  font-size: 22px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.health-card {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: white;
+}
+
+.success { border-left: 4px solid #22c55e; }
+.warning { border-left: 4px solid #f59e0b; }
+.danger  { border-left: 4px solid #ef4444; }
+.info    { border-left: 4px solid #3b82f6; }
+
+.alert-banner {
+  background: #fef3c7;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.user-item img {
+  width: 35px;
+  border-radius: 8px;
+}
+
+.status-ok {
+  color: #16a34a;
+  font-weight: bold;
+}
+
+.status-pending {
+  color: #d97706;
+}
+</style>
