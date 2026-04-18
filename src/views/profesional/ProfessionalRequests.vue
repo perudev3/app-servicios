@@ -204,14 +204,17 @@ const subtitleText = computed(() => {
 const myLocation = ref(null)
 
 const getMyLocation = () => {
+  if (!navigator.geolocation) {
+    showToast("Geolocalización no soportada", "error")
+    return
+  }
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      myLocation.value = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude
-      }
+      myLocation.value = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+      console.log('📍 ubicación obtenida:', myLocation.value)  // 👈
     },
-    () => {
+    (err) => {
+      console.error('geo error:', err.code, err.message)  // 👈 verás el código exacto
       showToast("No se pudo obtener tu ubicación", "error")
     }
   )
@@ -240,13 +243,19 @@ let routeLayer = null
 
 const drawRoute = async (from, to) => {
   try {
-    if (routeLayer) {
-      map.removeLayer(routeLayer)
-    }
+    if (routeLayer) map.removeLayer(routeLayer)
 
-    const res = await fetch(
-      `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`
-    )
+    const url = `https://router.project-osrm.org/route/v1/driving/` +
+      `${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`
+
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/json' }  // 👈
+    })
+
+    if (!res.ok) {  // 👈 captura 403, 429, etc.
+      showToast(`Error OSRM: ${res.status}`, 'error')
+      return
+    }
 
     const data = await res.json()
 
@@ -351,15 +360,21 @@ const initMap = async () => {
   }
 
   map = L.map(mapRef.value, { zoomControl: false }).setView(
-    [cityCenter.lat, cityCenter.lng],
-    13
+    [cityCenter.lat, cityCenter.lng], 13
   )
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap"
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    attribution: '© <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
   }).addTo(map)
 
   L.control.zoom({ position: 'bottomright' }).addTo(map)
+
+  // 👇 AÑADE ESTO
+  setTimeout(() => {
+    map.invalidateSize()
+  }, 300)
 }
 
 /* ======================= */
